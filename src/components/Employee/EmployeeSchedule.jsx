@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import Sidebar, { SidebarItem } from '../Sidebar/Sidebar';
 import { FaHome, FaTasks, FaCalendarAlt, FaUser, FaCog, FaPlus } from 'react-icons/fa';
-import Calendar from 'react-calendar';
-import 'react-calendar/dist/Calendar.css';
+import Calendar from "react-calendar";
+import "react-calendar/dist/Calendar.css";
 
 const EmployeeSchedule = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
