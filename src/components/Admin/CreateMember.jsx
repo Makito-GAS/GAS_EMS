@@ -140,12 +140,12 @@ const CreateMember = () => {
                 <select
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                   value={role}
-                  onChange={(e) => setRole(e.target.value)}
+                  onChange={(e) => setRole(e.target.value.toLowerCase())}
                   required
                 >
                   <option value="">Select a role</option>
                   {roles.map((roleOption) => (
-                    <option key={roleOption} value={roleOption}>
+                    <option key={roleOption} value={roleOption.toLowerCase()}>
                       {roleOption.charAt(0).toUpperCase() + roleOption.slice(1)}
                     </option>
                   ))}
@@ -165,7 +165,7 @@ const CreateMember = () => {
                     <option key={statusOption} value={statusOption}>
                       {statusOption.charAt(0).toUpperCase() + statusOption.slice(1)}
                     </option>
-                  ))}
+                  ))} b
                 </select>
               </div>
 
