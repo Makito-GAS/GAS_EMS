@@ -15,7 +15,7 @@ const AdminSidebar = ({ children }) => {
     try {
       await signOut();
       localStorage.removeItem('theme');
-      navigate('/authForm');
+      navigate('/');
     } catch(error) {
       console.error('Error signing out:', error);
     }
