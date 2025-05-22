@@ -29,20 +29,25 @@ const Authform = () => {
 
       setLoading(true);
       try {
+        console.log('Attempting to sign in with:', email);
         const result = await signIn(email, password);
+        console.log('Sign in result:', result);
         if (result.success) {
           // Navigate based on role
           if (result.role === 'admin') {
             navigate('/admin/dashboard');
           } else if (result.role === 'employee') {
-            navigate('/');
+            navigate('/employee/dashboard');
           } else {
+            console.error('Invalid role:', result.role);
             setError("Invalid user role");
           }
         } else {
+          console.error('Sign in failed:', result.error);
           setError(result.error || "Invalid email or password");
         }
       } catch (error) {
+        console.error('Unexpected error during sign in:', error);
         setError("An unexpected error occurred. Please try again.");
       } finally {
         setLoading(false);
