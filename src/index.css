@@ -1,0 +1,171 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Dark mode transitions */
+.dark {
+  color-scheme: dark;
+}
+
+/* Ensure smooth transitions for dark mode */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: "Open Sans", sans-serif;
+    background-color: #f8fafc;
+}
+
+/* Dashboard specific styles */
+.dashboard-container {
+    background-color: #f1f5f9;
+}
+
+/* Sidebar styles */
+.sidebar {
+    background-color: #1e293b;
+    color: #e2e8f0;
+}
+
+.sidebar-item {
+    color: #94a3b8;
+    transition: all 0.3s ease;
+}
+
+.sidebar-item:hover {
+    background-color: #334155;
+    color: #f8fafc;
+}
+
+.sidebar-item.active {
+    background-color: #334155;
+    color: #f8fafc;
+    border-left: 4px solid #3b82f6;
+}
+
+/* Card styles */
+.card {
+    @apply bg-white dark:bg-gray-800 shadow-md;
+}
+
+/* Button styles */
+.btn-primary {
+    @apply bg-blue-500 hover:bg-blue-600 text-white dark:bg-blue-600 dark:hover:bg-blue-700;
+}
+
+.btn-secondary {
+    @apply bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white;
+}
+
+/* Calendar Styles */
+.react-calendar {
+    @apply bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm;
+}
+
+.react-calendar__tile {
+    @apply p-2 text-gray-700 dark:text-gray-300;
+}
+
+.react-calendar__tile--now {
+    @apply bg-blue-100 dark:bg-blue-900;
+}
+
+.react-calendar__tile--active {
+    @apply bg-blue-500 text-white dark:bg-blue-600;
+}
+
+.react-calendar__tile--hasActive {
+    @apply bg-blue-100 dark:bg-blue-900;
+}
+
+.react-calendar__tile:hover {
+    background: #f1f5f9;
+    border-radius: 6px;
+}
+
+.react-calendar__month-view__days__day--weekend {
+    color: #ef4444;
+}
+
+.react-calendar__month-view__days__day--neighboringMonth {
+    color: #94a3b8;
+}
+
+.has-schedule {
+    position: relative;
+}
+
+.has-schedule::after {
+    content: '';
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    background-color: #3b82f6;
+    border-radius: 50%;
+}
+
+/* Task status colors */
+.status-pending {
+    @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200;
+}
+
+.status-in-progress {
+    @apply bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200;
+}
+
+.status-completed {
+    @apply bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200;
+}
+
+/* Priority colors */
+.priority-high {
+    @apply bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200;
+}
+
+.priority-medium {
+    @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200;
+}
+
+.priority-low {
+    @apply bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200;
+}
+
+/* Progress bar */
+.progress-bar {
+    background-color: #e2e8f0;
+}
+
+.progress-bar-fill {
+    background-color: #3b82f6;
+    transition: width 0.3s ease;
+}
+
+/* Modal styles */
+.modal-overlay {
+    background-color: rgba(15, 23, 42, 0.6);
+}
+
+.modal-content {
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Form elements */
+input, select, textarea {
+    @apply bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white;
+}
+
+input:focus, select:focus, textarea:focus {
+    border-color: #3b82f6;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
