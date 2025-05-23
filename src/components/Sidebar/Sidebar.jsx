@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import AnimatedLogo from './AnimatedLogo';
-import { FaChevronRight, FaChevronLeft, FaSignOutAlt, FaEllipsisV } from 'react-icons/fa';
+import { FaChevronRight, FaChevronLeft, FaSignOutAlt, FaEllipsisV, FaComments } from 'react-icons/fa';
 import { useNavigate, NavLink } from 'react-router-dom';
 
 const Sidebar = ({ children }) => {
@@ -15,7 +15,7 @@ const Sidebar = ({ children }) => {
     try {
       await signOut();
       localStorage.removeItem('theme');
-      navigate('/authForm');
+      navigate('/');
     } catch(error) {
       console.error('Error signing out:', error);
     }
@@ -36,6 +36,11 @@ const Sidebar = ({ children }) => {
 
         <ul className="flex-1 px-3 space-y-1">
           {children}
+          <SidebarItem 
+            icon={<FaComments className="w-6 h-6" />}
+            text={t('chat')}
+            path="/chat"
+          />
         </ul>
 
         {/* User details */}
