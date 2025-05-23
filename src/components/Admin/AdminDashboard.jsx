@@ -1,18 +1,23 @@
-import React from 'react'
-import { useState } from 'react'
-import { useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { Link, useNavigate } from 'react-router-dom'
-import { FaUsers, FaTasks, FaChartLine, FaCalendarAlt } from 'react-icons/fa'
+import { FaUsers, FaTasks, FaChartLine, FaCalendarAlt, FaComments } from 'react-icons/fa'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
 import { useLanguage } from '../../context/LanguageContext'
 import AdminSidebar, { AdminSidebarItem } from './AdminSidebar'
 import { FaHome, FaUserPlus, FaChartBar, FaCog } from 'react-icons/fa'
+import supabase from '../../../supabase-client'
 
 const AdminDashboard = () => {
   const {session, signOut} = useAuth();
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const [stats, setStats] = useState({
+    totalEmployees: 0,
+    activeTasks: 0,
+    upcomingEvents: 0,
+    unreadMessages: 0
+  });
 
   // Sample data for charts
   const employeeStats = [
@@ -30,6 +35,74 @@ const AdminDashboard = () => {
     { name: 'Wed', attendance: 90, productivity: 90 },
     { name: 'Thu', attendance: 88, productivity: 87 },
     { name: 'Fri', attendance: 85, productivity: 92 },
+  ];
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      // Fetch total employees
+      const { count: employeeCount } = await supabase
+        .from('member')
+        .select('*', { count: 'exact', head: true });
+
+      // Fetch active tasks
+      const { count: taskCount } = await supabase
+        .from('tasks')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+
+      // Fetch upcoming events
+      const { count: eventCount } = await supabase
+        .from('events')
+        .select('*', { count: 'exact', head: true })
+        .gte('start_time', new Date().toISOString());
+
+      // Fetch unread messages
+      const { count: messageCount } = await supabase
+        .from('messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('receiver_id', session?.user?.id)
+        .eq('is_read', false);
+
+      setStats({
+        totalEmployees: employeeCount || 0,
+        activeTasks: taskCount || 0,
+        upcomingEvents: eventCount || 0,
+        unreadMessages: messageCount || 0
+      });
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
+
+  const statCards = [
+    {
+      icon: <FaUsers className="w-8 h-8" />,
+      title: t('totalEmployees'),
+      value: stats.totalEmployees,
+      color: 'bg-blue-500'
+    },
+    {
+      icon: <FaTasks className="w-8 h-8" />,
+      title: t('activeTasks'),
+      value: stats.activeTasks,
+      color: 'bg-green-500'
+    },
+    {
+      icon: <FaCalendarAlt className="w-8 h-8" />,
+      title: t('upcomingEvents'),
+      value: stats.upcomingEvents,
+      color: 'bg-purple-500'
+    },
+    {
+      icon: <FaComments className="w-8 h-8" />,
+      title: t('unreadMessages'),
+      value: stats.unreadMessages,
+      color: 'bg-red-500'
+    }
   ];
 
   const handleSignOut = async () => {
@@ -79,18 +152,26 @@ const AdminDashboard = () => {
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-lg font-semibold text-gray-700 mb-2">Total Employees</h3>
-            <p className="text-3xl font-bold text-blue-600">65</p>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-lg font-semibold text-gray-700 mb-2">Active Projects</h3>
-            <p className="text-3xl font-bold text-green-600">12</p>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-lg font-semibold text-gray-700 mb-2">Pending Tasks</h3>
-            <p className="text-3xl font-bold text-orange-600">24</p>
-          </div>
+          {statCards.map((card, index) => (
+            <div
+              key={index}
+              className="bg-white p-6 rounded-lg shadow-md"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-500 text-sm">
+                    {card.title}
+                  </p>
+                  <p className="text-3xl font-bold text-gray-800 mt-2">
+                    {card.value}
+                  </p>
+                </div>
+                <div className={`${card.color} p-3 rounded-full text-white`}>
+                  {card.icon}
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* Charts */}
@@ -155,6 +236,43 @@ const AdminDashboard = () => {
               </div>
               <span className="text-sm text-gray-500">1 day ago</span>
             </div>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="mt-8">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">
+            {t('quickActions')}
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <button
+              onClick={() => navigate('/employees')}
+              className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow"
+            >
+              <FaUsers className="w-6 h-6 text-blue-500 mb-2" />
+              <p className="text-gray-800">{t('manageEmployees')}</p>
+            </button>
+            <button
+              onClick={() => navigate('/tasks')}
+              className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow"
+            >
+              <FaTasks className="w-6 h-6 text-green-500 mb-2" />
+              <p className="text-gray-800">{t('manageTasks')}</p>
+            </button>
+            <button
+              onClick={() => navigate('/schedule')}
+              className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow"
+            >
+              <FaCalendarAlt className="w-6 h-6 text-purple-500 mb-2" />
+              <p className="text-gray-800">{t('manageSchedule')}</p>
+            </button>
+            <button
+              onClick={() => navigate('/chat')}
+              className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow"
+            >
+              <FaComments className="w-6 h-6 text-red-500 mb-2" />
+              <p className="text-gray-800">{t('openChat')}</p>
+            </button>
           </div>
         </div>
       </div>
