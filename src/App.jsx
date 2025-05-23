@@ -11,6 +11,8 @@ import { LanguageProvider } from './context/LanguageContext';
 import AuthForm from './components/Auth/Authform';
 import CreateMember from './components/Admin/CreateMember';
 import EmployeeList from './components/Admin/EmployeeList';
+import Chat from './components/Chat/Chat';
+
 function App() {
   return (
     <AuthProvider>
@@ -34,6 +36,9 @@ function App() {
               <Route path="/admin/reports" element={<AdminDashboard />} /> {/* Temporary, should be replaced with actual component */}
               <Route path="/admin/settings" element={<AdminDashboard />} /> {/* Temporary, should be replaced with actual component */}
               <Route path="/admin/createMember" element={<CreateMember />} />
+              
+              {/* Chat Route */}
+              <Route path="/chat" element={<Chat />} />
               
               {/* Default Route */}
               <Route path="/employee" element={<EmployeeDashboard />} />
