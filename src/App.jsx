@@ -11,7 +11,10 @@ import { LanguageProvider } from './context/LanguageContext';
 import AuthForm from './components/Auth/Authform';
 import CreateMember from './components/Admin/CreateMember';
 import EmployeeList from './components/Admin/EmployeeList';
+import LeaveRequests from './components/Admin/LeaveRequests';
 import Chat from './components/Chat/Chat';
+import DailyReports from './components/Admin/DailyReports';
+import PerformanceAnalytics from './components/Admin/PerformanceAnalytics';
 
 function App() {
   return (
@@ -33,9 +36,11 @@ function App() {
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/employees" element={<EmployeeList/>} /> {/* Temporary, should be replaced with actual component */}
               <Route path="/admin/add-employee" element={<CreateMember />} />
-              <Route path="/admin/reports" element={<AdminDashboard />} /> {/* Temporary, should be replaced with actual component */}
+              <Route path="/admin/reports" element={<PerformanceAnalytics />} />
               <Route path="/admin/settings" element={<AdminDashboard />} /> {/* Temporary, should be replaced with actual component */}
               <Route path="/admin/createMember" element={<CreateMember />} />
+              <Route path="/admin/leave-requests" element={<LeaveRequests />} />
+              <Route path="/admin/daily-reports" element={<DailyReports />} />
               
               {/* Chat Route */}
               <Route path="/chat" element={<Chat />} />
