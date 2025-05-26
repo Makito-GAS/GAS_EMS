@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import AnimatedLogo from '../Sidebar/AnimatedLogo';
-import { FaChevronRight, FaChevronLeft, FaSignOutAlt, FaUsers, FaUserPlus, FaChartBar, FaCog, FaHome } from 'react-icons/fa';
+import { FaChevronRight, FaChevronLeft, FaSignOutAlt, FaUsers, FaUserPlus, FaChartBar, FaCog, FaHome, FaCalendarAlt, FaFileAlt } from 'react-icons/fa';
 import { useNavigate, NavLink } from 'react-router-dom';
 
 const AdminSidebar = ({ children }) => {
@@ -26,7 +26,7 @@ const AdminSidebar = ({ children }) => {
   };
 
   return (
-    <aside className="h-screen bg-gray-800">
+    <aside  className="fixed top-0 left-0 h-full w-64 bg-gray-800 shadow-lg z-50">
       <nav className={`h-full flex flex-col ${expanded ? 'w-64' : 'w-20'} transition-all duration-300 ease-in-out`}>
         <div className="p-4 pb-2 flex justify-between items-center">
           <AnimatedLogo className={`overflow-hidden transition-all duration-300 ${expanded ? "w-32" : "w-0"}`} />
@@ -42,6 +42,11 @@ const AdminSidebar = ({ children }) => {
           {React.Children.map(children, child => 
             React.cloneElement(child, { expanded })
           )}
+          <AdminSidebarItem 
+            icon={<FaFileAlt className="w-6 h-6" />}
+            text="Daily Reports"
+            path="/admin/daily-reports"
+          />
         </ul>
 
         {/* User details */}
