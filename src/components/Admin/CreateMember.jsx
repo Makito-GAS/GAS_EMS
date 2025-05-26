@@ -11,6 +11,8 @@ const CreateMember = () => {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('');
   const [status, setStatus] = useState('');
+  const [gender, setGender] = useState('');
+  const [department, setDepartment] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [roles, setRoles] = useState([]);
@@ -59,7 +61,7 @@ const CreateMember = () => {
     setLoading(true);
     setError('');
     try {
-      const result = await createMember(email, password, name, role, status);
+      const result = await createMember(email, password, name, role, status, gender, department);
       if (result.success) {
         navigate('/admin/employees');
       } else {
@@ -102,7 +104,7 @@ const CreateMember = () => {
         />
       </AdminSidebar>
 
-      <div className="flex-1 p-8">
+      <div className="ml-64 flex-1 p-8 overflow-y-auto h-screen">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Add New Employee</h1>
           <p className="text-gray-600">Create a new employee account</p>
@@ -167,6 +169,33 @@ const CreateMember = () => {
                     </option>
                   ))} b
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+                <select
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value)}
+                  required
+                >
+                  <option value="">Select gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                <input
+                  type="text"
+                  placeholder="Enter department"
+                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  value={department}
+                  onChange={(e) => setDepartment(e.target.value)}
+                  required
+                />
               </div>
 
               <div>
