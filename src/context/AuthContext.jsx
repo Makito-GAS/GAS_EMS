@@ -3,7 +3,7 @@ import supabase from '../../supabase-client';
 
 const AuthContext = createContext();
 
-export const createMember = async (email, password, name, role, status) => {
+export const createMember = async (email, password, name, role, status, gender, department) => {
   try {
     const createResult = await supabase.auth.signUp({
       email: email,
@@ -25,6 +25,8 @@ export const createMember = async (email, password, name, role, status) => {
       email: email,
       name: name,
       id: createResult.data.user.id,
+      gender: gender,
+      department: department
     });
 
     if (memberResult.error) {
