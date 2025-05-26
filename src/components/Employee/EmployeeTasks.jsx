@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaHome, FaTasks, FaCalendarAlt, FaUser, FaCog, FaPlus, FaTrash } from 'react-icons/fa';
+import { FaHome, FaTasks, FaCalendarAlt, FaUser, FaCog, FaPlus, FaTrash, FaFileAlt } from 'react-icons/fa';
 import Sidebar, { SidebarItem } from '../Sidebar/Sidebar';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
@@ -11,6 +11,7 @@ const EmployeeTasks = () => {
   const [tasks, setTasks] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [newTask, setNewTask] = useState({
@@ -22,6 +23,17 @@ const EmployeeTasks = () => {
     status: 'pending',
     progress: 0,
     assigned_to: ''
+  });
+  const [dailyReport, setDailyReport] = useState({
+    task_status: 'On Track',
+    full_name: '',
+    department: '',
+    accomplishments: '',
+    has_roadblocks: false,
+    roadblocks_description: '',
+    needs_help: false,
+    help_description: '',
+    additional_notes: ''
   });
 
   // Fetch tasks and employees when component mounts
@@ -169,6 +181,45 @@ const EmployeeTasks = () => {
     }
   };
 
+  const handleSubmitReport = async () => {
+    try {
+      setError(null);
+      
+      // Validate required fields
+      if (!dailyReport.full_name || !dailyReport.department || !dailyReport.accomplishments) {
+        setError('Please fill in all required fields');
+        return;
+      }
+
+      const { error } = await supabase
+        .from('daily_reports')
+        .insert([
+          {
+            member_id: session.user.id,
+            ...dailyReport
+          }
+        ]);
+
+      if (error) throw error;
+
+      setShowReportModal(false);
+      setDailyReport({
+        task_status: 'On Track',
+        full_name: '',
+        department: '',
+        accomplishments: '',
+        has_roadblocks: false,
+        roadblocks_description: '',
+        needs_help: false,
+        help_description: '',
+        additional_notes: ''
+      });
+    } catch (error) {
+      console.error('Error submitting daily report:', error);
+      setError('Failed to submit daily report. Please try again.');
+    }
+  };
+
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
       <Sidebar>
@@ -202,13 +253,22 @@ const EmployeeTasks = () => {
       <div className="flex-1 p-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800 dark:text-white">{t('tasks')}</h1>
-          <button
-            onClick={() => setShowModal(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-          >
-            <FaPlus className="mr-2" />
-            {t('addTask')}
-          </button>
+          <div className="flex space-x-4">
+            <button
+              onClick={() => setShowReportModal(true)}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center"
+            >
+              <FaFileAlt className="mr-2" />
+              {t('submitDailyReport')}
+            </button>
+            <button
+              onClick={() => setShowModal(true)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+            >
+              <FaPlus className="mr-2" />
+              {t('addTask')}
+            </button>
+          </div>
         </div>
 
         {error && (
@@ -295,109 +355,279 @@ const EmployeeTasks = () => {
             )}
           </div>
         )}
-      </div>
 
-      {/* Add Task Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">{t('addTask')}</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  {t('taskTitle')}
-                </label>
-                <input
-                  type="text"
-                  value={newTask.title}
-                  onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  {t('project')}
-                </label>
-                <input
-                  type="text"
-                  value={newTask.project}
-                  onChange={(e) => setNewTask({ ...newTask, project: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  {t('taskDescription')}
-                </label>
-                <textarea
-                  value={newTask.description}
-                  onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  rows="3"
-                ></textarea>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  {t('dueDate')}
-                </label>
-                <input
-                  type="date"
-                  value={newTask.dueDate}
-                  onChange={(e) => setNewTask({ ...newTask, dueDate: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  {t('priority')}
-                </label>
-                <select
-                  value={newTask.priority}
-                  onChange={(e) => setNewTask({ ...newTask, priority: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                >
-                  <option value="low">{t('low')}</option>
-                  <option value="medium">{t('medium')}</option>
-                  <option value="high">{t('high')}</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  {t('assignTo')}
-                </label>
-                <select
-                  value={newTask.assigned_to}
-                  onChange={(e) => setNewTask({ ...newTask, assigned_to: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                >
-                  <option value="">{t('selectAssignee')}</option>
-                  {employees.map((employee) => (
-                    <option key={employee.id} value={employee.id}>
-                      {employee.name} ({employee.email})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex justify-end space-x-2">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
-                >
-                  {t('cancel')}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleAddTask}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  {t('addTask')}
-                </button>
+        {/* Daily Report Modal */}
+        {showReportModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">{t('dailyReport')}</h2>
+              {error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                  {error}
+                </div>
+              )}
+              <form onSubmit={(e) => { e.preventDefault(); handleSubmitReport(); }} className="space-y-4">
+                <div>
+                  <label className="block text-gray-700 dark:text-gray-300 mb-2">🟢 Overall status of your immediate tasks/priorities for today *</label>
+                  <select
+                    value={dailyReport.task_status}
+                    onChange={(e) => setDailyReport({ ...dailyReport, task_status: e.target.value })}
+                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    required
+                  >
+                    <option value="On Track">On Track</option>
+                    <option value="At Risk">At Risk</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 dark:text-gray-300 mb-2">Full Name & Surname *</label>
+                  <input
+                    type="text"
+                    value={dailyReport.full_name}
+                    onChange={(e) => setDailyReport({ ...dailyReport, full_name: e.target.value })}
+                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 dark:text-gray-300 mb-2">Department *</label>
+                  <select
+                    value={dailyReport.department}
+                    onChange={(e) => setDailyReport({ ...dailyReport, department: e.target.value })}
+                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    required
+                  >
+                    <option value="">Select Department</option>
+                    <option value="Administration">Administration</option>
+                    <option value="Data Analyst">Data Analyst</option>
+                    <option value="Developer">Developer</option>
+                    <option value="Designer">Designer</option>
+                    <option value="Human Resource">Human Resource</option>
+                    <option value="Training">Training</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 dark:text-gray-300 mb-2">📌 What have you focused on and completed today? *</label>
+                  <textarea
+                    value={dailyReport.accomplishments}
+                    onChange={(e) => setDailyReport({ ...dailyReport, accomplishments: e.target.value })}
+                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    rows="3"
+                    placeholder="Enter your response in text format. Focus on 2-3 key accomplishments."
+                    required
+                  ></textarea>
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 dark:text-gray-300 mb-2">⚠ Did you encounter any immediate roadblocks or problems today? *</label>
+                  <div className="flex space-x-4">
+                    <label className="inline-flex items-center">
+                      <input
+                        type="radio"
+                        checked={dailyReport.has_roadblocks}
+                        onChange={() => setDailyReport({ ...dailyReport, has_roadblocks: true })}
+                        className="form-radio"
+                      />
+                      <span className="ml-2">Yes</span>
+                    </label>
+                    <label className="inline-flex items-center">
+                      <input
+                        type="radio"
+                        checked={!dailyReport.has_roadblocks}
+                        onChange={() => setDailyReport({ ...dailyReport, has_roadblocks: false })}
+                        className="form-radio"
+                      />
+                      <span className="ml-2">No</span>
+                    </label>
+                  </div>
+                </div>
+
+                {dailyReport.has_roadblocks && (
+                  <div>
+                    <label className="block text-gray-700 dark:text-gray-300 mb-2">🧩 If yes, what was the nature of the problem?</label>
+                    <textarea
+                      value={dailyReport.roadblocks_description}
+                      onChange={(e) => setDailyReport({ ...dailyReport, roadblocks_description: e.target.value })}
+                      className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      rows="3"
+                      placeholder="Enter your response in text format."
+                    ></textarea>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-gray-700 dark:text-gray-300 mb-2">🤝 Do you need any immediate help or unblockers for tomorrow? *</label>
+                  <div className="flex space-x-4">
+                    <label className="inline-flex items-center">
+                      <input
+                        type="radio"
+                        checked={dailyReport.needs_help}
+                        onChange={() => setDailyReport({ ...dailyReport, needs_help: true })}
+                        className="form-radio"
+                      />
+                      <span className="ml-2">Yes</span>
+                    </label>
+                    <label className="inline-flex items-center">
+                      <input
+                        type="radio"
+                        checked={!dailyReport.needs_help}
+                        onChange={() => setDailyReport({ ...dailyReport, needs_help: false })}
+                        className="form-radio"
+                      />
+                      <span className="ml-2">No</span>
+                    </label>
+                  </div>
+                </div>
+
+                {dailyReport.needs_help && (
+                  <div>
+                    <label className="block text-gray-700 dark:text-gray-300 mb-2">🛠 If yes, please describe the kind of help you need</label>
+                    <textarea
+                      value={dailyReport.help_description}
+                      onChange={(e) => setDailyReport({ ...dailyReport, help_description: e.target.value })}
+                      className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      rows="3"
+                      placeholder="Enter your response in text format."
+                    ></textarea>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-gray-700 dark:text-gray-300 mb-2">🗣 Anything quick I need to know?</label>
+                  <textarea
+                    value={dailyReport.additional_notes}
+                    onChange={(e) => setDailyReport({ ...dailyReport, additional_notes: e.target.value })}
+                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    rows="3"
+                    placeholder="Enter your response in text format."
+                  ></textarea>
+                </div>
+
+                <div className="flex justify-end space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowReportModal(false)}
+                    className="px-4 py-2 border rounded hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700 dark:text-white"
+                  >
+                    {t('cancel')}
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                  >
+                    {t('submitReport')}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Add Task Modal */}
+        {showModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+              <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">{t('addTask')}</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t('taskTitle')}
+                  </label>
+                  <input
+                    type="text"
+                    value={newTask.title}
+                    onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t('project')}
+                  </label>
+                  <input
+                    type="text"
+                    value={newTask.project}
+                    onChange={(e) => setNewTask({ ...newTask, project: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t('taskDescription')}
+                  </label>
+                  <textarea
+                    value={newTask.description}
+                    onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    rows="3"
+                  ></textarea>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t('dueDate')}
+                  </label>
+                  <input
+                    type="date"
+                    value={newTask.dueDate}
+                    onChange={(e) => setNewTask({ ...newTask, dueDate: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t('priority')}
+                  </label>
+                  <select
+                    value={newTask.priority}
+                    onChange={(e) => setNewTask({ ...newTask, priority: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  >
+                    <option value="low">{t('low')}</option>
+                    <option value="medium">{t('medium')}</option>
+                    <option value="high">{t('high')}</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    {t('assignTo')}
+                  </label>
+                  <select
+                    value={newTask.assigned_to}
+                    onChange={(e) => setNewTask({ ...newTask, assigned_to: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  >
+                    <option value="">{t('selectAssignee')}</option>
+                    {employees.map((employee) => (
+                      <option key={employee.id} value={employee.id}>
+                        {employee.name} ({employee.email})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(false)}
+                    className="px-4 py-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+                  >
+                    {t('cancel')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAddTask}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    {t('addTask')}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
