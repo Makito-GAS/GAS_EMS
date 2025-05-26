@@ -1,10 +1,11 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { FaTasks, FaCheckCircle, FaClock, FaChartLine, FaHome, FaCalendarAlt, FaUser, FaCog, FaSignOutAlt } from 'react-icons/fa'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
 import Sidebar, { SidebarItem } from '../Sidebar/Sidebar'
 import { useLanguage } from '../../context/LanguageContext'
+import supabase from '../../../supabase-client'
 
 const EmployeeDashboard = () => {
   const { session, signOut } = useAuth();
@@ -17,7 +18,68 @@ const EmployeeDashboard = () => {
     checkOut: null
   });
   const [attendanceError, setAttendanceError] = useState('');
+  const [leaveRequest, setLeaveRequest] = useState({
+    leave_type: 'annual',
+    start_date: '',
+    end_date: '',
+    reason: ''
+  });
+  const [leaveRequests, setLeaveRequests] = useState([]);
+  const [leaveError, setLeaveError] = useState('');
   const { t } = useLanguage();
+
+  useEffect(() => {
+    fetchLeaveRequests();
+  }, []);
+
+  const fetchLeaveRequests = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('leave_requests')
+        .select('*')
+        .eq('member_id', session?.user?.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setLeaveRequests(data);
+    } catch (error) {
+      console.error('Error fetching leave requests:', error);
+    }
+  };
+
+  const handleLeaveSubmit = async (e) => {
+    e.preventDefault();
+    setLeaveError('');
+
+    try {
+      const { error } = await supabase
+        .from('leave_requests')
+        .insert([
+          {
+            member_id: session?.user?.id,
+            leave_type: leaveRequest.leave_type,
+            start_date: leaveRequest.start_date,
+            end_date: leaveRequest.end_date,
+            reason: leaveRequest.reason,
+            status: 'pending'
+          }
+        ]);
+
+      if (error) throw error;
+
+      setShowLeaveModal(false);
+      setLeaveRequest({
+        leave_type: 'annual',
+        start_date: '',
+        end_date: '',
+        reason: ''
+      });
+      fetchLeaveRequests();
+    } catch (error) {
+      console.error('Error submitting leave request:', error);
+      setLeaveError('Failed to submit leave request. Please try again.');
+    }
+  };
 
   // Sample data for charts
   const taskCompletionData = [
@@ -142,6 +204,43 @@ const EmployeeDashboard = () => {
           </button>
         </div>
 
+        {/* Leave Requests Status */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-8">
+          <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">{t('leaveRequests')}</h2>
+          <div className="space-y-4">
+            {leaveRequests.length === 0 ? (
+              <p className="text-gray-600 dark:text-gray-300">{t('noLeaveRequests')}</p>
+            ) : (
+              leaveRequests.map((request) => (
+                <div key={request.id} className="border-b pb-4 last:border-b-0">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-medium text-gray-800 dark:text-white">
+                        {t(request.leave_type)} Leave
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                        {new Date(request.start_date).toLocaleDateString()} - {new Date(request.end_date).toLocaleDateString()}
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                        {request.reason}
+                      </p>
+                    </div>
+                    <span className={`px-3 py-1 rounded-full text-sm ${
+                      request.status === 'approved' 
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                        : request.status === 'rejected'
+                        ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                    }`}>
+                      {t(request.status)}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Task Overview Card */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
@@ -210,33 +309,63 @@ const EmployeeDashboard = () => {
         {/* Leave Request Modal */}
         {showLeaveModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <h2 className="text-xl font-semibold mb-4">{t('requestLeave')}</h2>
-              <form className="space-y-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+              <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">{t('requestLeave')}</h2>
+              {leaveError && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                  {leaveError}
+                </div>
+              )}
+              <form onSubmit={handleLeaveSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-gray-700 mb-2">{t('leaveType')}</label>
-                  <select className="w-full p-2 border rounded">
+                  <label className="block text-gray-700 dark:text-gray-300 mb-2">{t('leaveType')}</label>
+                  <select
+                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    value={leaveRequest.leave_type}
+                    onChange={(e) => setLeaveRequest({ ...leaveRequest, leave_type: e.target.value })}
+                    required
+                  >
                     <option value="sick">{t('sickLeave')}</option>
                     <option value="annual">{t('annualLeave')}</option>
                     <option value="emergency">{t('emergencyLeave')}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-gray-700 mb-2">{t('startDate')}</label>
-                  <input type="date" className="w-full p-2 border rounded" />
+                  <label className="block text-gray-700 dark:text-gray-300 mb-2">{t('startDate')}</label>
+                  <input
+                    type="date"
+                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    value={leaveRequest.start_date}
+                    onChange={(e) => setLeaveRequest({ ...leaveRequest, start_date: e.target.value })}
+                    required
+                  />
                 </div>
                 <div>
-                  <label className="block text-gray-700 mb-2">{t('endDate')}</label>
-                  <input type="date" className="w-full p-2 border rounded" />
+                  <label className="block text-gray-700 dark:text-gray-300 mb-2">{t('endDate')}</label>
+                  <input
+                    type="date"
+                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    value={leaveRequest.end_date}
+                    onChange={(e) => setLeaveRequest({ ...leaveRequest, end_date: e.target.value })}
+                    required
+                  />
                 </div>
                 <div>
-                  <label className="block text-gray-700 mb-2">{t('reason')}</label>
-                  <textarea className="w-full p-2 border rounded" rows="3" placeholder={t('enterReasonForLeave')}></textarea>
+                  <label className="block text-gray-700 dark:text-gray-300 mb-2">{t('reason')}</label>
+                  <textarea
+                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    rows="3"
+                    value={leaveRequest.reason}
+                    onChange={(e) => setLeaveRequest({ ...leaveRequest, reason: e.target.value })}
+                    placeholder={t('enterReasonForLeave')}
+                    required
+                  ></textarea>
                 </div>
                 <div className="flex justify-end space-x-2">
                   <button
+                    type="button"
                     onClick={() => setShowLeaveModal(false)}
-                    className="px-4 py-2 border rounded hover:bg-gray-100"
+                    className="px-4 py-2 border rounded hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700 dark:text-white"
                   >
                     {t('cancel')}
                   </button>
