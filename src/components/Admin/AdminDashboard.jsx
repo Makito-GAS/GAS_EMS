@@ -116,7 +116,7 @@ const AdminDashboard = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <AdminSidebar>
+      <AdminSidebar className=''>
         <AdminSidebarItem 
           icon={<FaHome className="w-6 h-6" />}
           text="Dashboard"
@@ -133,6 +133,11 @@ const AdminDashboard = () => {
           path="/admin/add-employee"
         />
         <AdminSidebarItem 
+          icon={<FaCalendarAlt className="w-6 h-6" />}
+          text="Leave Requests"
+          path="/admin/leave-requests"
+        />
+        <AdminSidebarItem 
           icon={<FaChartBar className="w-6 h-6" />}
           text="Reports"
           path="/admin/reports"
@@ -144,7 +149,7 @@ const AdminDashboard = () => {
         />
       </AdminSidebar>
 
-      <div className="flex-1 p-8">
+      <div className="ml-64 flex-1 p-8 overflow-y-auto h-screen">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Admin Dashboard</h1>
           <p className="text-gray-600">Welcome back, {session?.user?.email?.split('@')[0] || 'Admin'}</p>
