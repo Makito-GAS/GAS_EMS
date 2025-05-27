@@ -1,19 +1,20 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import supabase from '../../supabase-client';
+import supabaseAdmin from '../../supabase-admin';
 
 const AuthContext = createContext();
 
 export const createMember = async (email, password, name, role, status, gender, department) => {
   try {
-    const createResult = await supabase.auth.signUp({
+    // Use admin client to create user without affecting current session
+    const createResult = await supabaseAdmin.auth.admin.createUser({
       email: email,
       password: password,
-      options: {
-        data: {
-          name: name,
-          role: role,
-          status: status,
-        }
+      email_confirm: true,
+      user_metadata: {
+        name: name,
+        role: role,
+        status: status,
       }
     });
 
