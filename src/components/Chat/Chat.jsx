@@ -2,12 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import supabase from '../../../supabase-client';
-import { FaPaperPlane, FaUser } from 'react-icons/fa';
-import { Navigate } from 'react-router-dom';
+import { FaPaperPlane, FaUser, FaArrowLeft } from 'react-icons/fa';
+import { Navigate, useNavigate } from 'react-router-dom';
 
 const Chat = () => {
   const { session } = useAuth();
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -188,7 +189,13 @@ const Chat = () => {
     <div className="flex h-[calc(100vh-4rem)] bg-gray-50 dark:bg-gray-900">
       {/* Users List */}
       <div className="w-1/4 border-r border-gray-200 dark:border-gray-700">
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center">
+          <button
+            onClick={() => navigate(-1)}
+            className="mr-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+          >
+            <FaArrowLeft className="text-gray-600 dark:text-gray-300" />
+          </button>
           <h2 className="text-xl font-semibold text-gray-800 dark:text-white">{t('messages')}</h2>
         </div>
         <div className="overflow-y-auto h-full">
