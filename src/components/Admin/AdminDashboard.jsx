@@ -39,7 +39,23 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     fetchStats();
-  }, []);
+    // Subscribe to message updates
+    const subscription = supabase
+      .channel('messages')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'messages',
+        filter: `receiver_id=eq.${session?.user?.id}`
+      }, () => {
+        fetchStats(); // Refresh stats when messages change
+      })
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [session]);
 
   const fetchStats = async () => {
     try {
@@ -216,33 +232,6 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* Recent Activity */}
-        <div className="mt-8 bg-white p-6 rounded-lg shadow-md">
-          <h3 className="text-lg font-semibold text-gray-700 mb-4">Recent Activity</h3>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div>
-                <p className="font-medium">New employee joined</p>
-                <p className="text-sm text-gray-600">John Doe joined the team</p>
-              </div>
-              <span className="text-sm text-gray-500">2 hours ago</span>
-            </div>
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div>
-                <p className="font-medium">Project completed</p>
-                <p className="text-sm text-gray-600">Website redesign project finished</p>
-              </div>
-              <span className="text-sm text-gray-500">5 hours ago</span>
-            </div>
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div>
-                <p className="font-medium">Task assigned</p>
-                <p className="text-sm text-gray-600">New task assigned to Sarah Smith</p>
-              </div>
-              <span className="text-sm text-gray-500">1 day ago</span>
-            </div>
-          </div>
-        </div>
 
         {/* Quick Actions */}
         <div className="mt-8">
