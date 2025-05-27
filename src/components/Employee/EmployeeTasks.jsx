@@ -4,6 +4,7 @@ import Sidebar, { SidebarItem } from '../Sidebar/Sidebar';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import supabase from '../../../supabase-client';
+import WeeklyReportForm from './WeeklyReportForm';
 
 const EmployeeTasks = () => {
   const { t } = useLanguage();
@@ -12,6 +13,7 @@ const EmployeeTasks = () => {
   const [employees, setEmployees] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showWeeklyReportModal, setShowWeeklyReportModal] = useState(false);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [newTask, setNewTask] = useState({
@@ -254,6 +256,13 @@ const EmployeeTasks = () => {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800 dark:text-white">{t('tasks')}</h1>
           <div className="flex space-x-4">
+            <button
+              onClick={() => setShowWeeklyReportModal(true)}
+              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center"
+            >
+              <FaFileAlt className="mr-2" />
+              {t('submitWeeklyReport')}
+            </button>
             <button
               onClick={() => setShowReportModal(true)}
               className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center"
@@ -524,6 +533,16 @@ const EmployeeTasks = () => {
               </form>
             </div>
           </div>
+        )}
+
+        {/* Weekly Report Modal */}
+        {showWeeklyReportModal && (
+          <WeeklyReportForm
+            onClose={() => setShowWeeklyReportModal(false)}
+            onSuccess={() => {
+              // Optionally refresh tasks or show success message
+            }}
+          />
         )}
 
         {/* Add Task Modal */}
