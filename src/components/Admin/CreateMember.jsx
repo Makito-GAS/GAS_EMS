@@ -188,14 +188,20 @@ const CreateMember = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
-                <input
-                  type="text"
-                  placeholder="Enter department"
+                <select
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                   value={department}
                   onChange={(e) => setDepartment(e.target.value)}
                   required
-                />
+                >
+                  <option value="">Select Department</option>
+                  <option value="Administration">Administration</option>
+                  <option value="Data Analyst">Data Analyst</option>
+                  <option value="Designer">Designer</option>
+                  <option value="Developer">Developer</option>
+                  <option value="Human Resource">Human Resource</option>
+                  <option value="Training">Training</option>
+                </select>
               </div>
 
               <div>
