@@ -1,9 +1,13 @@
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const service_role_key = import.meta.env.VITE_SUPABASE_SERVICE_ROLE;
+const serviceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE;
 
-const supabaseAdmin = createClient(supabase_url, service_role_key, {
+if (!supabaseUrl || !serviceRoleKey) {
+  throw new Error('Missing Supabase environment variables. Please check your .env file.');
+}
+
+const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
   auth: {
     autoRefreshToken: false,
     persistSession: false
@@ -11,8 +15,6 @@ const supabaseAdmin = createClient(supabase_url, service_role_key, {
 })
 
 // Access auth admin api
-const adminAuthClient = supabaseAdmin.auth.admin
+const adminAuthClient = supabaseAdmin.auth.admin;
 
-export default adminAuthClient;
-
-
+export default supabaseAdmin;

@@ -1,11 +1,18 @@
 import { createClient } from "@supabase/supabase-js";
 
-
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabasekey = import.meta.env.VITE_SUPABASE_KEY;
+const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
 
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error('Missing Supabase environment variables. Please check your .env file.');
+}
 
+const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+});
 
-const supabase = createClient(supabaseUrl,supabasekey);
-
-export default supabase
+export default supabase;
