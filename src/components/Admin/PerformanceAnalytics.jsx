@@ -34,6 +34,7 @@ const PerformanceAnalytics = () => {
   const [weeklyData, setWeeklyData] = useState(null);
   const [departmentData, setDepartmentData] = useState(null);
   const [employeeGrowth, setEmployeeGrowth] = useState([]);
+  const [weeklyReportData, setWeeklyReportData] = useState(null);
 
   useEffect(() => {
     fetchAnalyticsData();
@@ -49,29 +50,93 @@ const PerformanceAnalytics = () => {
       startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
 
       // Fetch daily reports for the current week
-      const { data: reports, error: reportsError } = await supabase
+      const { data: dailyReports, error: dailyReportsError } = await supabase
         .from('daily_reports')
-        .select(`
-          *,
-          member:member (
-            name,
-            email,
-            department
-          )
-        `)
+        .select('*')
         .gte('created_at', startOfWeek.toISOString())
         .order('created_at', { ascending: true });
 
-      if (reportsError) throw reportsError;
+      if (dailyReportsError) throw dailyReportsError;
 
-      // Process data for charts
-      const taskStatusData = processTaskStatusData(reports);
-      const departmentPerformanceData = processDepartmentData(reports);
-      const employeeGrowthData = processEmployeeGrowth(reports);
+      // Fetch weekly reports for the current quarter
+      const startOfQuarter = new Date();
+      startOfQuarter.setMonth(Math.floor(startOfQuarter.getMonth() / 3) * 3, 1);
+      startOfQuarter.setHours(0, 0, 0, 0);
+
+      const { data: weeklyReports, error: weeklyReportsError } = await supabase
+        .from('weekly_reports')
+        .select('*')
+        .gte('created_at', startOfQuarter.toISOString())
+        .order('created_at', { ascending: true });
+
+      if (weeklyReportsError) throw weeklyReportsError;
+
+      // Initialize default data for charts
+      const defaultTaskStatusData = {
+        labels: ['On Track', 'At Risk'],
+        datasets: [{
+          label: 'Task Status Distribution',
+          data: [0, 0],
+          backgroundColor: ['rgba(34, 197, 94, 0.6)', 'rgba(239, 68, 68, 0.6)'],
+          borderColor: ['rgb(34, 197, 94)', 'rgb(239, 68, 68)'],
+          borderWidth: 1
+        }]
+      };
+
+      const defaultDepartmentData = {
+        labels: [],
+        datasets: [
+          {
+            label: 'On Track Tasks',
+            data: [],
+            backgroundColor: 'rgba(34, 197, 94, 0.6)',
+          },
+          {
+            label: 'At Risk Tasks',
+            data: [],
+            backgroundColor: 'rgba(239, 68, 68, 0.6)',
+          }
+        ]
+      };
+
+      const defaultWeeklyReportData = {
+        okrStatus: {
+          labels: ['On Track', 'At Risk'],
+          datasets: [{
+            label: 'OKR Status Distribution',
+            data: [0, 0],
+            backgroundColor: ['rgba(34, 197, 94, 0.6)', 'rgba(239, 68, 68, 0.6)'],
+            borderColor: ['rgb(34, 197, 94)', 'rgb(239, 68, 68)'],
+            borderWidth: 1
+          }]
+        },
+        hours: {
+          labels: [],
+          datasets: [
+            {
+              label: 'Planned Hours',
+              data: [],
+              backgroundColor: 'rgba(59, 130, 246, 0.6)',
+            },
+            {
+              label: 'Actual Hours',
+              data: [],
+              backgroundColor: 'rgba(16, 185, 129, 0.6)',
+            }
+          ]
+        }
+      };
+
+      // Process data for charts if we have data
+      const taskStatusData = dailyReports?.length > 0 ? processTaskStatusData(dailyReports) : defaultTaskStatusData;
+      const departmentPerformanceData = dailyReports?.length > 0 ? processDepartmentData(dailyReports) : defaultDepartmentData;
+      const employeeGrowthData = dailyReports?.length > 0 ? processEmployeeGrowth(dailyReports) : [];
+      const weeklyReportAnalytics = weeklyReports?.length > 0 ? processWeeklyReportData(weeklyReports) : defaultWeeklyReportData;
 
       setWeeklyData(taskStatusData);
       setDepartmentData(departmentPerformanceData);
       setEmployeeGrowth(employeeGrowthData);
+      setWeeklyReportData(weeklyReportAnalytics);
     } catch (error) {
       console.error('Error fetching analytics data:', error);
       setError(error.message);
@@ -106,7 +171,7 @@ const PerformanceAnalytics = () => {
     const departmentStats = {};
     
     reports.forEach(report => {
-      const dept = report.member.department;
+      const dept = report.department;
       if (!departmentStats[dept]) {
         departmentStats[dept] = {
           total: 0,
@@ -151,8 +216,8 @@ const PerformanceAnalytics = () => {
       const employeeId = report.member_id;
       if (!employeeStats[employeeId]) {
         employeeStats[employeeId] = {
-          name: report.member.name,
-          department: report.member.department,
+          name: report.full_name,
+          department: report.department,
           totalReports: 0,
           onTrackCount: 0,
           roadblocksCount: 0,
@@ -187,6 +252,43 @@ const PerformanceAnalytics = () => {
     return Math.round(
       (onTrackRatio * 0.5 + (1 - roadblockRatio) * 0.3 + (1 - helpRequestRatio) * 0.2) * 100
     );
+  };
+
+  const processWeeklyReportData = (reports) => {
+    const okrStatusData = {
+      labels: ['On Track', 'At Risk'],
+      datasets: [{
+        label: 'OKR Status Distribution',
+        data: [
+          reports.filter(r => r.task_status === 'On Track').length,
+          reports.filter(r => r.task_status === 'At Risk').length
+        ],
+        backgroundColor: ['rgba(34, 197, 94, 0.6)', 'rgba(239, 68, 68, 0.6)'],
+        borderColor: ['rgb(34, 197, 94)', 'rgb(239, 68, 68)'],
+        borderWidth: 1
+      }]
+    };
+
+    const hoursData = {
+      labels: reports.map(r => r.full_name),
+      datasets: [
+        {
+          label: 'Planned Hours',
+          data: reports.map(r => r.planned_hours),
+          backgroundColor: 'rgba(59, 130, 246, 0.6)',
+        },
+        {
+          label: 'Actual Hours',
+          data: reports.map(r => r.actual_hours),
+          backgroundColor: 'rgba(16, 185, 129, 0.6)',
+        }
+      ]
+    };
+
+    return {
+      okrStatus: okrStatusData,
+      hours: hoursData
+    };
   };
 
   return (
@@ -244,11 +346,21 @@ const PerformanceAnalytics = () => {
           <div className="space-y-8">
             {/* Task Status Distribution */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Task Status Distribution</h2>
+              <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Daily Task Status Distribution</h2>
               <div className="h-80">
                 <Pie data={weeklyData} options={{ maintainAspectRatio: false }} />
               </div>
             </div>
+
+            {/* OKR Status Distribution */}
+            {weeklyReportData && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Quarterly OKR Status Distribution</h2>
+                <div className="h-80">
+                  <Pie data={weeklyReportData.okrStatus} options={{ maintainAspectRatio: false }} />
+                </div>
+              </div>
+            )}
 
             {/* Department Performance */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
@@ -272,9 +384,29 @@ const PerformanceAnalytics = () => {
               </div>
             </div>
 
+            {/* Hours Tracking */}
+            {weeklyReportData && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Weekly Hours Tracking</h2>
+                <div className="h-80">
+                  <Bar 
+                    data={weeklyReportData.hours} 
+                    options={{
+                      maintainAspectRatio: false,
+                      scales: {
+                        y: {
+                          beginAtZero: true
+                        }
+                      }
+                    }} 
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Employee Growth Table */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-              <h2 className="text-xl font-semibold text-gray-800 dark:text-white p-6 pb-0">Employee Growth</h2>
+              <h2 className="text-xl font-semibold text-gray-800 dark:text-white p-6">Employee Growth</h2>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                   <thead className="bg-gray-50 dark:bg-gray-700">
@@ -309,18 +441,10 @@ const PerformanceAnalytics = () => {
                           <div className="text-sm text-gray-900 dark:text-white">{employee.department}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className={`text-sm font-medium ${
-                            employee.performanceScore >= 80 ? 'text-green-600' :
-                            employee.performanceScore >= 60 ? 'text-yellow-600' :
-                            'text-red-600'
-                          }`}>
-                            {employee.performanceScore}%
-                          </div>
+                          <div className="text-sm text-gray-900 dark:text-white">{employee.performanceScore}%</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900 dark:text-white">
-                            {employee.onTrackCount}/{employee.totalReports}
-                          </div>
+                          <div className="text-sm text-gray-900 dark:text-white">{employee.onTrackCount}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900 dark:text-white">{employee.roadblocksCount}</div>
