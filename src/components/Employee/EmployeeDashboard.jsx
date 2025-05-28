@@ -26,11 +26,49 @@ const EmployeeDashboard = () => {
   });
   const [leaveRequests, setLeaveRequests] = useState([]);
   const [leaveError, setLeaveError] = useState('');
+  const [taskStats, setTaskStats] = useState({
+    total: 0,
+    completed: 0,
+    pending: 0
+  });
+  const [loading, setLoading] = useState(true);
   const { t } = useLanguage();
+  const [leaveBalance, setLeaveBalance] = useState({
+    annual: 15,
+    sick: 0,
+    emergency: 0
+  });
+  const [leaveLoading, setLeaveLoading] = useState(true);
 
   useEffect(() => {
     fetchLeaveRequests();
+    fetchTaskStats();
+    fetchLeaveBalance();
   }, []);
+
+  const fetchTaskStats = async () => {
+    try {
+      setLoading(true);
+      const { data: tasks, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .or(`created_by.eq.${session.user.id},assigned_to.eq.${session.user.id}`);
+
+      if (error) throw error;
+
+      const stats = {
+        total: tasks.length,
+        completed: tasks.filter(task => task.status === 'completed').length,
+        pending: tasks.filter(task => task.status !== 'completed').length
+      };
+
+      setTaskStats(stats);
+    } catch (error) {
+      console.error('Error fetching task stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchLeaveRequests = async () => {
     try {
@@ -44,6 +82,40 @@ const EmployeeDashboard = () => {
       setLeaveRequests(data);
     } catch (error) {
       console.error('Error fetching leave requests:', error);
+    }
+  };
+
+  const fetchLeaveBalance = async () => {
+    try {
+      setLeaveLoading(true);
+      const { data: approvedLeaves, error } = await supabase
+        .from('leave_requests')
+        .select('*')
+        .eq('member_id', session?.user?.id)
+        .eq('status', 'approved');
+
+      if (error) throw error;
+
+      // Calculate used leave days
+      const usedLeaves = approvedLeaves.reduce((acc, leave) => {
+        const startDate = new Date(leave.start_date);
+        const endDate = new Date(leave.end_date);
+        const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+        
+        acc[leave.leave_type] = (acc[leave.leave_type] || 0) + days;
+        return acc;
+      }, {});
+
+      // Calculate remaining leave days
+      setLeaveBalance({
+        annual: 15 - (usedLeaves.annual || 0),
+        sick: 10 - (usedLeaves.sick || 0),
+        emergency: 5 - (usedLeaves.emergency || 0)
+      });
+    } catch (error) {
+      console.error('Error fetching leave balance:', error);
+    } finally {
+      setLeaveLoading(false);
     }
   };
 
@@ -81,24 +153,6 @@ const EmployeeDashboard = () => {
     }
   };
 
-  // Sample data for charts
-  const taskCompletionData = [
-    { name: 'Mon', completed: 4, assigned: 6 },
-    { name: 'Tue', completed: 3, assigned: 5 },
-    { name: 'Wed', completed: 5, assigned: 7 },
-    { name: 'Thu', completed: 2, assigned: 4 },
-    { name: 'Fri', completed: 6, assigned: 8 },
-  ];
-
-  const performanceData = [
-    { name: 'Jan', performance: 85 },
-    { name: 'Feb', performance: 88 },
-    { name: 'Mar', performance: 92 },
-    { name: 'Apr', performance: 87 },
-    { name: 'May', performance: 90 },
-    { name: 'Jun', performance: 95 },
-  ];
-
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -119,8 +173,8 @@ const EmployeeDashboard = () => {
     const currentTime = new Date();
     const currentHour = currentTime.getHours();
     
-    if (currentHour > 7) {
-      setAttendanceError('Check-in is only allowed before 7 AM');
+    if (currentHour > 9) {
+      setAttendanceError('Check-in is only allowed before 9 AM');
       return;
     }
 
@@ -245,20 +299,26 @@ const EmployeeDashboard = () => {
           {/* Task Overview Card */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">{t('taskOverview')}</h2>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-300">{t('totalTasks')}</span>
-                <span className="text-gray-800 dark:text-white font-semibold">12</span>
+            {loading ? (
+              <div className="flex justify-center items-center h-32">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-300">{t('completedTasks')}</span>
-                <span className="text-gray-800 dark:text-white font-semibold">8</span>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 dark:text-gray-300">{t('totalTasks')}</span>
+                  <span className="text-gray-800 dark:text-white font-semibold">{taskStats.total}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 dark:text-gray-300">{t('completedTasks')}</span>
+                  <span className="text-gray-800 dark:text-white font-semibold">{taskStats.completed}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 dark:text-gray-300">{t('pendingTasks')}</span>
+                  <span className="text-gray-800 dark:text-white font-semibold">{taskStats.pending}</span>
+                </div>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-300">{t('pendingTasks')}</span>
-                <span className="text-gray-800 dark:text-white font-semibold">4</span>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Attendance Card */}
@@ -289,20 +349,26 @@ const EmployeeDashboard = () => {
           {/* Leave Balance Card */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">{t('leaveBalance')}</h2>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-300">{t('annualLeave')}</span>
-                <span className="text-gray-800 dark:text-white font-semibold">15 days</span>
+            {leaveLoading ? (
+              <div className="flex justify-center items-center h-32">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-300">{t('sickLeave')}</span>
-                <span className="text-gray-800 dark:text-white font-semibold">10 days</span>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 dark:text-gray-300">{t('annualLeave')}</span>
+                  <span className="text-gray-800 dark:text-white font-semibold">{leaveBalance.annual} days</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 dark:text-gray-300">{t('sickLeave')}</span>
+                  <span className="text-gray-800 dark:text-white font-semibold">{leaveBalance.sick} days</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600 dark:text-gray-300">{t('emergencyLeave')}</span>
+                  <span className="text-gray-800 dark:text-white font-semibold">{leaveBalance.emergency} days</span>
+                </div>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-300">{t('emergencyLeave')}</span>
-                <span className="text-gray-800 dark:text-white font-semibold">5 days</span>
-              </div>
-            </div>
+            )}
           </div>
         </div>
 
