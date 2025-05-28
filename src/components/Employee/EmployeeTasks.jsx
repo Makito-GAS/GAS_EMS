@@ -5,6 +5,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import supabase from '../../../supabase-client';
 import WeeklyReportForm from './WeeklyReportForm';
+import { toast } from 'react-hot-toast';
 
 const EmployeeTasks = () => {
   const { t } = useLanguage();
@@ -88,7 +89,15 @@ const EmployeeTasks = () => {
       
       // Validate required fields
       if (!newTask.title || !newTask.project || !newTask.dueDate) {
-        setError('Please fill in all required fields');
+        toast.error('Please fill in all required fields');
+        return;
+      }
+
+      // Validate due date is not in the past
+      const dueDate = new Date(newTask.dueDate);
+      const today = new Date();
+      if (dueDate < today) {
+        toast.error('Due date cannot be in the past');
         return;
       }
 
@@ -111,7 +120,7 @@ const EmployeeTasks = () => {
 
       if (error) {
         console.error('Supabase error:', error);
-        setError(error.message);
+        toast.error(error.message);
         return;
       }
 
@@ -129,9 +138,10 @@ const EmployeeTasks = () => {
         assigned_to: ''
       });
       setShowModal(false);
+      toast.success('Task created successfully');
     } catch (error) {
       console.error('Error creating task:', error);
-      setError('Failed to create task. Please try again.');
+      toast.error('Failed to create task. Please try again.');
     }
   };
 
@@ -158,28 +168,104 @@ const EmployeeTasks = () => {
 
   const handleProgressChange = async (taskId, newProgress) => {
     try {
+      setError(null);
+      
+      // Validate progress value
+      if (newProgress < 0 || newProgress > 100) {
+        toast.error('Progress must be between 0 and 100');
+        return;
+      }
+
+      // Validate task exists
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) {
+        toast.error('Task not found');
+        return;
+      }
+
+      // Check if task is past due date
+      const dueDate = new Date(task.due_date);
+      const today = new Date();
+      if (dueDate < today && newProgress < 100) {
+        toast.error('Cannot update progress for overdue tasks. Please complete the task or request an extension.');
+        return;
+      }
+
       const status = newProgress === 100 ? 'completed' : newProgress > 0 ? 'in-progress' : 'pending';
       
-      const { error } = await supabase
+      // Optimistically update the UI
+      setTasks(prevTasks => prevTasks.map(task => 
+        task.id === taskId 
+          ? { ...task, progress: newProgress, status: status }
+          : task
+      ));
+
+      const { data, error } = await supabase
         .from('tasks')
         .update({ 
           progress: newProgress,
           status: status,
-          completed_at: status === 'completed' ? new Date().toISOString() : null
+          completed_at: status === 'completed' ? new Date().toISOString() : null,
+          updated_at: new Date().toISOString()
         })
-        .eq('id', taskId);
+        .eq('id', taskId)
+        .select()
+        .single();
 
       if (error) {
-        console.error('Error updating task:', error);
-        setError('Failed to update task progress');
-        return;
+        // Revert the optimistic update if there's an error
+        setTasks(prevTasks => prevTasks.map(task => 
+          task.id === taskId 
+            ? { ...task, progress: task.progress, status: task.status }
+            : task
+        ));
+        throw error;
       }
 
-      // Refresh tasks after update
-      await fetchTasks();
+      // Update the task with the returned data to ensure consistency
+      if (data) {
+        setTasks(prevTasks => prevTasks.map(task => 
+          task.id === taskId ? data : task
+        ));
+
+        // If task is completed, update performance metrics
+        if (status === 'completed') {
+          await updatePerformanceMetrics(taskId, data);
+        }
+
+        // Show success message
+        toast.success('Task progress updated successfully');
+      }
     } catch (error) {
       console.error('Error updating task:', error);
-      setError('Failed to update task progress');
+      toast.error(error.message || 'Failed to update task progress. Please try again.');
+    }
+  };
+
+  const updatePerformanceMetrics = async (taskId, taskData) => {
+    try {
+      const dueDate = new Date(taskData.due_date);
+      const completedAt = new Date(taskData.completed_at);
+      const isOnTime = completedAt <= dueDate;
+
+      // Update daily performance record
+      const { error } = await supabase
+        .from('daily_performance')
+        .upsert({
+          member_id: session.user.id,
+          date: new Date().toISOString().split('T')[0],
+          tasks_completed: 1,
+          tasks_completed_on_time: isOnTime ? 1 : 0,
+          tasks_completed_late: isOnTime ? 0 : 1
+        }, {
+          onConflict: 'member_id,date'
+        });
+
+      if (error) {
+        console.error('Error updating performance metrics:', error);
+      }
+    } catch (error) {
+      console.error('Error updating performance metrics:', error);
     }
   };
 
@@ -334,31 +420,55 @@ const EmployeeTasks = () => {
 
                   <div className="mb-4">
                     <div className="flex justify-between items-center mb-2">
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{t('status')}</p>
-                      <p className={`text-sm font-medium ${
-                        task.status === 'completed' ? 'text-green-600' :
-                        task.status === 'in-progress' ? 'text-blue-600' :
-                        'text-yellow-600'
-                      }`}>
-                        {t(task.status)}
-                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{t('progress')}</p>
+                      <div className="flex items-center space-x-2">
+                        <p className="text-sm font-medium text-gray-800 dark:text-white">{task.progress}%</p>
+                        <p className={`text-sm font-medium ${
+                          task.status === 'completed' ? 'text-green-600' :
+                          task.status === 'in-progress' ? 'text-blue-600' :
+                          'text-yellow-600'
+                        }`}>
+                          {t(task.status)}
+                        </p>
+                      </div>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
                       <div
-                        className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                        className={`h-2.5 rounded-full transition-all duration-300 ${
+                          task.progress === 100 ? 'bg-green-600' : 'bg-blue-600'
+                        }`}
                         style={{ width: `${task.progress}%` }}
                       ></div>
                     </div>
+                    <div className="mt-2 flex items-center space-x-2">
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        step="5"
+                        value={task.progress}
+                        onChange={(e) => handleProgressChange(task.id, parseInt(e.target.value))}
+                        className="flex-1"
+                        disabled={new Date(task.due_date) < new Date() && task.progress < 100}
+                      />
+                      <button
+                        onClick={() => handleProgressChange(task.id, 100)}
+                        className={`px-2 py-1 text-xs rounded ${
+                          task.progress === 100 
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                            : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                        }`}
+                        disabled={new Date(task.due_date) < new Date() && task.progress < 100}
+                      >
+                        {t('complete')}
+                      </button>
+                    </div>
+                    {new Date(task.due_date) < new Date() && task.progress < 100 && (
+                      <p className="text-sm text-red-600 mt-1">
+                        This task is overdue. Please complete it or request an extension.
+                      </p>
+                    )}
                   </div>
-
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={task.progress}
-                    onChange={(e) => handleProgressChange(task.id, parseInt(e.target.value))}
-                    className="w-full"
-                  />
                 </div>
               ))
             )}
