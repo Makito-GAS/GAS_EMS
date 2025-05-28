@@ -1,57 +1,90 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
+import { AuthProvider } from './context/AuthContext';
+import { LanguageProvider } from './context/LanguageContext';
+import ProtectedRoute from './components/ProtectedRoute';
+
+// Components
+import AuthForm from './components/Auth/Authform';
 import EmployeeDashboard from './components/Employee/EmployeeDashboard';
 import EmployeeTasks from './components/Employee/EmployeeTasks';
 import EmployeeSchedule from './components/Employee/EmployeeSchedule';
 import EmployeeProfile from './components/Employee/EmployeeProfile';
 import EmployeeSettings from './components/Employee/EmployeeSettings';
 import AdminDashboard from './components/Admin/AdminDashboard';
-import { AuthProvider } from './context/AuthContext';
-import { LanguageProvider } from './context/LanguageContext';
-import AuthForm from './components/Auth/Authform';
 import CreateMember from './components/Admin/CreateMember';
 import EmployeeList from './components/Admin/EmployeeList';
 import LeaveRequests from './components/Admin/LeaveRequests';
-import Chat from './components/Chat/Chat';
 import DailyReports from './components/Admin/DailyReports';
 import PerformanceAnalytics from './components/Admin/PerformanceAnalytics';
+import Chat from './components/Chat/Chat';
 
 function App() {
   return (
-    <AuthProvider>
-      <LanguageProvider>
-        <Router>
+    <Router>
+      <AuthProvider>
+        <LanguageProvider>
+          <Toaster position="top-right" />
           <div className="min-h-screen bg-gray-50">
             <Routes>
+              {/* Public Routes */}
               <Route path="/" element={<AuthForm />} />
-              
-              {/* Employee Routes */}
-              <Route path="/employee/dashboard" element={<EmployeeDashboard />} />
-              <Route path="/employee/tasks" element={<EmployeeTasks />} />
-              <Route path="/employee/schedule" element={<EmployeeSchedule />} />
-              <Route path="/employee/profile" element={<EmployeeProfile />} />
-              <Route path="/employee/settings" element={<EmployeeSettings />} />
-              
-              {/* Admin Routes */}
-              <Route path="/admin/dashboard" element={<AdminDashboard />} />
-              <Route path="/admin/employees" element={<EmployeeList/>} /> {/* Temporary, should be replaced with actual component */}
-              <Route path="/admin/add-employee" element={<CreateMember />} />
-              <Route path="/admin/reports" element={<PerformanceAnalytics />} />
-              <Route path="/admin/settings" element={<AdminDashboard />} /> {/* Temporary, should be replaced with actual component */}
-              <Route path="/admin/createMember" element={<CreateMember />} />
-              <Route path="/admin/leave-requests" element={<LeaveRequests />} />
-              <Route path="/admin/daily-reports" element={<DailyReports />} />
-              
-              {/* Chat Route */}
-              <Route path="/chat" element={<Chat />} />
-              
-              {/* Default Route */}
-              <Route path="/employee" element={<EmployeeDashboard />} />
+
+              {/* Protected Routes - Employee Access */}
+              <Route
+                path="/employee/*"
+                element={
+                  <ProtectedRoute allowedRoles={['employee']}>
+                    <Routes>
+                      <Route path="dashboard" element={<EmployeeDashboard />} />
+                      <Route path="tasks" element={<EmployeeTasks />} />
+                      <Route path="schedule" element={<EmployeeSchedule />} />
+                      <Route path="profile" element={<EmployeeProfile />} />
+                      <Route path="settings" element={<EmployeeSettings />} />
+                      <Route path="chat" element={<Chat />} />
+                      <Route path="*" element={<Navigate to="/employee/dashboard" replace />} />
+                    </Routes>
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Protected Routes - Admin Access */}
+              <Route
+                path="/admin/*"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <Routes>
+                      <Route path="dashboard" element={<AdminDashboard />} />
+                      <Route path="employees" element={<EmployeeList />} />
+                      <Route path="add-employee" element={<CreateMember />} />
+                      <Route path="reports" element={<PerformanceAnalytics />} />
+                      <Route path="daily-reports" element={<DailyReports />} />
+                      <Route path="leave-requests" element={<LeaveRequests />} />
+                      <Route path="chat" element={<Chat />} />
+                      <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+                    </Routes>
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Protected Routes - Common Access (for authenticated users) */}
+              <Route
+                path="/chat"
+                element={
+                  <ProtectedRoute>
+                    <Chat />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Catch all route - redirect to login */}
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </div>
-        </Router>
-      </LanguageProvider>
-    </AuthProvider>
+        </LanguageProvider>
+      </AuthProvider>
+    </Router>
   );
 }
 
