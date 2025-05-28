@@ -149,27 +149,27 @@ const EmployeeDashboard = () => {
       <Sidebar>
         <SidebarItem 
           icon={<FaHome className="w-6 h-6" />}
-          text={t('dashboard')}
+          text="Dashboard"
           path="/employee/dashboard"
         />
         <SidebarItem 
           icon={<FaTasks className="w-6 h-6" />}
-          text={t('tasks')}
+          text="Tasks"
           path="/employee/tasks"
         />
         <SidebarItem 
           icon={<FaCalendarAlt className="w-6 h-6" />}
-          text={t('schedule')}
+          text="Schedule"
           path="/employee/schedule"
         />
         <SidebarItem 
           icon={<FaUser className="w-6 h-6" />}
-          text={t('profile')}
+          text="Profile"
           path="/employee/profile"
         />
         <SidebarItem 
           icon={<FaCog className="w-6 h-6" />}
-          text={t('settings')}
+          text="Settings"
           path="/employee/settings"
         />
         <div className="mt-auto pt-4 border-t border-gray-700">
@@ -183,8 +183,8 @@ const EmployeeDashboard = () => {
 
       <div className="flex-1 p-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">{t('welcomeBack')}</h1>
-          <p className="text-gray-600 dark:text-gray-300">{t('overview')}</p>
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">Welcome Back</h1>
+          <p className="text-gray-600 dark:text-gray-300">Overview</p>
         </div>
 
         <div className="flex flex-wrap gap-4 mb-8">
@@ -193,20 +193,20 @@ const EmployeeDashboard = () => {
             className="flex items-center px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
           >
             <FaClock className="mr-2 text-xl" />
-            <span className="text-lg">{t('markAttendance')}</span>
+            <span className="text-lg">Mark Attendance</span>
           </button>
           <button
             onClick={() => setShowLeaveModal(true)}
             className="flex items-center px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
           >
             <FaCalendarAlt className="mr-2 text-xl" />
-            <span className="text-lg">{t('requestLeave')}</span>
+            <span className="text-lg">Request Leave</span>
           </button>
         </div>
 
         {/* Leave Requests Status */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-8">
-          <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">{t('leaveRequests')}</h2>
+          <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Leave Requests</h2>
           <div className="space-y-4">
             {leaveRequests.length === 0 ? (
               <p className="text-gray-600 dark:text-gray-300">{t('noLeaveRequests')}</p>
@@ -244,18 +244,18 @@ const EmployeeDashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Task Overview Card */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">{t('taskOverview')}</h2>
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Task Overview</h2>
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-300">{t('totalTasks')}</span>
+                <span className="text-gray-600 dark:text-gray-300">Total Tasks</span>
                 <span className="text-gray-800 dark:text-white font-semibold">12</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-300">{t('completedTasks')}</span>
+                <span className="text-gray-600 dark:text-gray-300">Completed Tasks</span>
                 <span className="text-gray-800 dark:text-white font-semibold">8</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-300">{t('pendingTasks')}</span>
+                <span className="text-gray-600 dark:text-gray-300">Pending Tasks</span>
                 <span className="text-gray-800 dark:text-white font-semibold">4</span>
               </div>
             </div>
@@ -263,24 +263,24 @@ const EmployeeDashboard = () => {
 
           {/* Attendance Card */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">{t('todayAttendance')}</h2>
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Today's Attendance</h2>
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-300">{t('checkIn')}</span>
-                <span className="text-gray-800 dark:text-white font-semibold">{attendance.checkIn || t('notCheckedIn')}</span>
+                <span className="text-gray-600 dark:text-gray-300">Check In</span>
+                <span className="text-gray-800 dark:text-white font-semibold">{attendance.checkIn || 'Not Checked In'}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-300">{t('checkOut')}</span>
-                <span className="text-gray-800 dark:text-white font-semibold">{attendance.checkOut || t('notCheckedOut')}</span>
+                <span className="text-gray-600 dark:text-gray-300">Check Out</span>
+                <span className="text-gray-800 dark:text-white font-semibold">{attendance.checkOut || 'Not Checked Out'}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-300">{t('status')}</span>
+                <span className="text-gray-600 dark:text-gray-300">Status</span>
                 <span className={`px-3 py-1 rounded-full text-sm ${
                   attendance.checkIn && attendance.checkOut ? 'status-completed' :
                   attendance.checkIn ? 'status-in-progress' : 'status-pending'
                 }`}>
-                  {attendance.checkIn && attendance.checkOut ? t('completed') :
-                   attendance.checkIn ? t('checkedIn') : t('notStarted')}
+                  {attendance.checkIn && attendance.checkOut ? 'Completed' :
+                   attendance.checkIn ? 'Checked In' : 'Not Started'}
                 </span>
               </div>
             </div>
@@ -288,18 +288,18 @@ const EmployeeDashboard = () => {
 
           {/* Leave Balance Card */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">{t('leaveBalance')}</h2>
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Leave Balance</h2>
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-300">{t('annualLeave')}</span>
+                <span className="text-gray-600 dark:text-gray-300">Annual Leave</span>
                 <span className="text-gray-800 dark:text-white font-semibold">15 days</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-300">{t('sickLeave')}</span>
+                <span className="text-gray-600 dark:text-gray-300">Sick Leave</span>
                 <span className="text-gray-800 dark:text-white font-semibold">10 days</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-300">{t('emergencyLeave')}</span>
+                <span className="text-gray-600 dark:text-gray-300">Emergency Leave</span>
                 <span className="text-gray-800 dark:text-white font-semibold">5 days</span>
               </div>
             </div>
@@ -420,11 +420,11 @@ const EmployeeDashboard = () => {
                   </button>
                 </div>
                 <div className="mt-4">
-                  <h3 className="font-semibold mb-2">{t('todayAttendance')}</h3>
+                  <h3 className="font-semibold mb-2">Today's Attendance</h3>
                   <div className="bg-gray-50 p-3 rounded">
                     <p className="text-sm text-gray-600">{t('date')}: {attendance.date}</p>
-                    <p className="text-sm text-gray-600">{t('checkIn')}: {attendance.checkIn || t('notCheckedIn')}</p>
-                    <p className="text-sm text-gray-600">{t('checkOut')}: {attendance.checkOut || t('notCheckedOut')}</p>
+                    <p className="text-sm text-gray-600">{t('checkIn')}: {attendance.checkIn || 'Not Checked In'}</p>
+                    <p className="text-sm text-gray-600">{t('checkOut')}: {attendance.checkOut || 'Not Checked Out'}</p>
                   </div>
                 </div>
                 <div className="flex justify-end">
