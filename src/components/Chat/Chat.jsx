@@ -143,12 +143,12 @@ const Chat = () => {
         event: 'INSERT',
         schema: 'public',
         table: 'messages',
-        filter: `receiver_id=eq.${session.user.id}`
+        filter: `or(and(sender_id.eq.${session.user.id},receiver_id.eq.${selectedUser?.id}),and(sender_id.eq.${selectedUser?.id},receiver_id.eq.${session.user.id}))`
       }, payload => {
         if (payload.new) {
           setMessages(prev => [...prev, payload.new]);
-          // Only mark as read if it's a new message
-          if (!payload.new.is_read) {
+          // Only mark as read if it's a new message and current user is receiver
+          if (!payload.new.is_read && payload.new.receiver_id === session.user.id) {
             markMessagesAsRead([payload.new.id]);
           }
         }
@@ -163,7 +163,7 @@ const Chat = () => {
     if (!newMessage.trim() || !selectedUser || !session?.user) return;
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('messages')
         .insert([
           {
@@ -171,9 +171,16 @@ const Chat = () => {
             receiver_id: selectedUser.id,
             content: newMessage.trim()
           }
-        ]);
+        ])
+        .select()
+        .single();
 
       if (error) throw error;
+      
+      // Update local state with the new message
+      if (data) {
+        setMessages(prev => [...prev, data]);
+      }
       setNewMessage('');
     } catch (error) {
       console.error('Error sending message:', error);

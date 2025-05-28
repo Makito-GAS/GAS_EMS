@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { Link, useNavigate } from 'react-router-dom'
 import { FaUsers, FaTasks, FaChartLine, FaCalendarAlt, FaComments } from 'react-icons/fa'
@@ -37,27 +37,21 @@ const AdminDashboard = () => {
     { name: 'Fri', attendance: 85, productivity: 92 },
   ];
 
-  useEffect(() => {
-    fetchStats();
-    // Subscribe to message updates
-    const subscription = supabase
-      .channel('messages')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'messages',
-        filter: `receiver_id=eq.${session?.user?.id}`
-      }, () => {
-        fetchStats(); // Refresh stats when messages change
-      })
-      .subscribe();
-
-    return () => {
-      subscription.unsubscribe();
+  // Debounce function
+  const debounce = (func, wait) => {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
     };
-  }, [session]);
+  };
 
-  const fetchStats = async () => {
+  // Memoize fetchStats to prevent unnecessary re-renders
+  const fetchStats = useCallback(async () => {
     try {
       // Fetch total employees
       const { count: employeeCount } = await supabase
@@ -83,16 +77,55 @@ const AdminDashboard = () => {
         .eq('receiver_id', session?.user?.id)
         .eq('is_read', false);
 
-      setStats({
+      setStats(prev => ({
+        ...prev,
         totalEmployees: employeeCount || 0,
         activeTasks: taskCount || 0,
         upcomingEvents: eventCount || 0,
         unreadMessages: messageCount || 0
-      });
+      }));
     } catch (error) {
       console.error('Error fetching stats:', error);
     }
-  };
+  }, [session?.user?.id]);
+
+  // Create debounced version of fetchStats
+  const debouncedFetchStats = useCallback(
+    debounce(fetchStats, 300),
+    [fetchStats]
+  );
+
+  useEffect(() => {
+    fetchStats();
+    
+    // Subscribe to message updates
+    const subscription = supabase
+      .channel('messages')
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'messages',
+        filter: `receiver_id=eq.${session?.user?.id}`
+      }, (payload) => {
+        // Only refresh if the message was marked as read
+        if (payload.new.is_read && !payload.old.is_read) {
+          debouncedFetchStats();
+        }
+      })
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `receiver_id=eq.${session?.user?.id}`
+      }, () => {
+        debouncedFetchStats();
+      })
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [session, debouncedFetchStats]);
 
   const statCards = [
     {
