@@ -35,16 +35,18 @@ const EmployeeDashboard = () => {
   const { t } = useLanguage();
   const [leaveBalance, setLeaveBalance] = useState({
     annual: 15,
-    sick: 0,
-    emergency: 0
+    sick: 10,
+    emergency: 5
   });
   const [leaveLoading, setLeaveLoading] = useState(true);
 
   useEffect(() => {
-    fetchLeaveRequests();
-    fetchTaskStats();
-    fetchLeaveBalance();
-  }, []);
+    if (session?.user) {
+      fetchLeaveRequests();
+      fetchTaskStats();
+      fetchLeaveBalance();
+    }
+  }, [session]);
 
   const fetchTaskStats = async () => {
     try {
@@ -147,6 +149,7 @@ const EmployeeDashboard = () => {
         reason: ''
       });
       fetchLeaveRequests();
+      fetchLeaveBalance();
     } catch (error) {
       console.error('Error submitting leave request:', error);
       setLeaveError('Failed to submit leave request. Please try again.');
@@ -158,7 +161,7 @@ const EmployeeDashboard = () => {
       await signOut();
       navigate('/');
     } catch(error) {
-      console.log(error);
+      console.error('Error signing out:', error);
     }
   }
 
@@ -169,7 +172,7 @@ const EmployeeDashboard = () => {
     }));
   };
 
-  const handleCheckIn = () => {
+  const handleCheckIn = async () => {
     const currentTime = new Date();
     const currentHour = currentTime.getHours();
     
@@ -178,24 +181,55 @@ const EmployeeDashboard = () => {
       return;
     }
 
-    setAttendanceError('');
-    setAttendance(prev => ({
-      ...prev,
-      checkIn: currentTime.toLocaleTimeString()
-    }));
+    try {
+      const { error } = await supabase
+        .from('attendance')
+        .insert([
+          {
+            member_id: session?.user?.id,
+            date: attendance.date,
+            check_in: currentTime.toISOString(),
+            status: 'present'
+          }
+        ]);
+
+      if (error) throw error;
+
+      setAttendanceError('');
+      setAttendance(prev => ({
+        ...prev,
+        checkIn: currentTime.toLocaleTimeString()
+      }));
+    } catch (error) {
+      console.error('Error marking attendance:', error);
+      setAttendanceError('Failed to mark attendance. Please try again.');
+    }
   };
 
-  const handleCheckOut = () => {
+  const handleCheckOut = async () => {
     if (!attendance.checkIn) {
       setAttendanceError('Please check in first');
       return;
     }
 
-    setAttendanceError('');
-    setAttendance(prev => ({
-      ...prev,
-      checkOut: new Date().toLocaleTimeString()
-    }));
+    try {
+      const { error } = await supabase
+        .from('attendance')
+        .update({ check_out: new Date().toISOString() })
+        .eq('member_id', session?.user?.id)
+        .eq('date', attendance.date);
+
+      if (error) throw error;
+
+      setAttendanceError('');
+      setAttendance(prev => ({
+        ...prev,
+        checkOut: new Date().toLocaleTimeString()
+      }));
+    } catch (error) {
+      console.error('Error marking checkout:', error);
+      setAttendanceError('Failed to mark checkout. Please try again.');
+    }
   };
 
   return (
@@ -203,27 +237,27 @@ const EmployeeDashboard = () => {
       <Sidebar>
         <SidebarItem 
           icon={<FaHome className="w-6 h-6" />}
-          text={t('dashboard')}
+          text="Dashboard"
           path="/employee/dashboard"
         />
         <SidebarItem 
           icon={<FaTasks className="w-6 h-6" />}
-          text={t('tasks')}
+          text="Tasks"
           path="/employee/tasks"
         />
         <SidebarItem 
           icon={<FaCalendarAlt className="w-6 h-6" />}
-          text={t('schedule')}
+          text="Schedule"
           path="/employee/schedule"
         />
         <SidebarItem 
           icon={<FaUser className="w-6 h-6" />}
-          text={t('profile')}
+          text="Profile"
           path="/employee/profile"
         />
         <SidebarItem 
           icon={<FaCog className="w-6 h-6" />}
-          text={t('settings')}
+          text="Settings"
           path="/employee/settings"
         />
         <div className="mt-auto pt-4 border-t border-gray-700">
@@ -237,280 +271,219 @@ const EmployeeDashboard = () => {
 
       <div className="flex-1 p-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">{t('welcomeBack')}</h1>
-          <p className="text-gray-600 dark:text-gray-300">{t('overview')}</p>
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">Welcome Back</h1>
+          <p className="text-gray-600 dark:text-gray-300">Overview</p>
         </div>
 
-        <div className="flex flex-wrap gap-4 mb-8">
-          <button
-            onClick={() => setShowAttendanceModal(true)}
-            className="flex items-center px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-          >
-            <FaClock className="mr-2 text-xl" />
-            <span className="text-lg">{t('markAttendance')}</span>
-          </button>
-          <button
-            onClick={() => setShowLeaveModal(true)}
-            className="flex items-center px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-          >
-            <FaCalendarAlt className="mr-2 text-xl" />
-            <span className="text-lg">{t('requestLeave')}</span>
-          </button>
-        </div>
-
-        {/* Leave Requests Status */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-8">
-          <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">{t('leaveRequests')}</h2>
-          <div className="space-y-4">
-            {leaveRequests.length === 0 ? (
-              <p className="text-gray-600 dark:text-gray-300">{t('noLeaveRequests')}</p>
-            ) : (
-              leaveRequests.map((request) => (
-                <div key={request.id} className="border-b pb-4 last:border-b-0">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-medium text-gray-800 dark:text-white">
-                        {t(request.leave_type)} Leave
-                      </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-300">
-                        {new Date(request.start_date).toLocaleDateString()} - {new Date(request.end_date).toLocaleDateString()}
-                      </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                        {request.reason}
-                      </p>
-                    </div>
-                    <span className={`px-3 py-1 rounded-full text-sm ${
-                      request.status === 'approved' 
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                        : request.status === 'rejected'
-                        ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                    }`}>
-                      {t(request.status)}
-                    </span>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Task Overview Card */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {/* Task Stats Card */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">{t('taskOverview')}</h2>
-            {loading ? (
-              <div className="flex justify-center items-center h-32">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-300">{t('totalTasks')}</span>
-                  <span className="text-gray-800 dark:text-white font-semibold">{taskStats.total}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-300">{t('completedTasks')}</span>
-                  <span className="text-gray-800 dark:text-white font-semibold">{taskStats.completed}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-300">{t('pendingTasks')}</span>
-                  <span className="text-gray-800 dark:text-white font-semibold">{taskStats.pending}</span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Attendance Card */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">{t('todayAttendance')}</h2>
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Task Overview</h3>
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-300">{t('checkIn')}</span>
-                <span className="text-gray-800 dark:text-white font-semibold">{attendance.checkIn || t('notCheckedIn')}</span>
+                <span className="text-gray-600 dark:text-gray-300">Total Tasks</span>
+                <span className="text-gray-800 dark:text-white font-semibold">{taskStats.total}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-300">{t('checkOut')}</span>
-                <span className="text-gray-800 dark:text-white font-semibold">{attendance.checkOut || t('notCheckedOut')}</span>
+                <span className="text-gray-600 dark:text-gray-300">Completed</span>
+                <span className="text-green-600 dark:text-green-400 font-semibold">{taskStats.completed}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-300">{t('status')}</span>
-                <span className={`px-3 py-1 rounded-full text-sm ${
-                  attendance.checkIn && attendance.checkOut ? 'status-completed' :
-                  attendance.checkIn ? 'status-in-progress' : 'status-pending'
-                }`}>
-                  {attendance.checkIn && attendance.checkOut ? t('completed') :
-                   attendance.checkIn ? t('checkedIn') : t('notStarted')}
-                </span>
+                <span className="text-gray-600 dark:text-gray-300">Pending</span>
+                <span className="text-yellow-600 dark:text-yellow-400 font-semibold">{taskStats.pending}</span>
               </div>
             </div>
           </div>
 
           {/* Leave Balance Card */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">{t('leaveBalance')}</h2>
-            {leaveLoading ? (
-              <div className="flex justify-center items-center h-32">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Leave Balance</h3>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600 dark:text-gray-300">Annual Leave</span>
+                <span className="text-blue-600 dark:text-blue-400 font-semibold">{leaveBalance.annual} days</span>
               </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-300">{t('annualLeave')}</span>
-                  <span className="text-gray-800 dark:text-white font-semibold">{leaveBalance.annual} days</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-300">{t('sickLeave')}</span>
-                  <span className="text-gray-800 dark:text-white font-semibold">{leaveBalance.sick} days</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-300">{t('emergencyLeave')}</span>
-                  <span className="text-gray-800 dark:text-white font-semibold">{leaveBalance.emergency} days</span>
-                </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600 dark:text-gray-300">Sick Leave</span>
+                <span className="text-red-600 dark:text-red-400 font-semibold">{leaveBalance.sick} days</span>
               </div>
-            )}
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600 dark:text-gray-300">Emergency Leave</span>
+                <span className="text-purple-600 dark:text-purple-400 font-semibold">{leaveBalance.emergency} days</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Actions Card */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Quick Actions</h3>
+            <div className="space-y-4">
+              <button
+                onClick={() => setShowAttendanceModal(true)}
+                className="w-full flex items-center justify-center px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+              >
+                <FaClock className="mr-2" />
+                Mark Attendance
+              </button>
+              <button
+                onClick={() => setShowLeaveModal(true)}
+                className="w-full flex items-center justify-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              >
+                <FaCalendarAlt className="mr-2" />
+                Request Leave
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Leave Request Modal */}
-        {showLeaveModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
-              <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">{t('requestLeave')}</h2>
-              {leaveError && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-                  {leaveError}
-                </div>
-              )}
-              <form onSubmit={handleLeaveSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-gray-700 dark:text-gray-300 mb-2">{t('leaveType')}</label>
-                  <select
-                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    value={leaveRequest.leave_type}
-                    onChange={(e) => setLeaveRequest({ ...leaveRequest, leave_type: e.target.value })}
-                    required
-                  >
-                    <option value="sick">{t('sickLeave')}</option>
-                    <option value="annual">{t('annualLeave')}</option>
-                    <option value="emergency">{t('emergencyLeave')}</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-gray-700 dark:text-gray-300 mb-2">{t('startDate')}</label>
-                  <input
-                    type="date"
-                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    value={leaveRequest.start_date}
-                    onChange={(e) => setLeaveRequest({ ...leaveRequest, start_date: e.target.value })}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-700 dark:text-gray-300 mb-2">{t('endDate')}</label>
-                  <input
-                    type="date"
-                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    value={leaveRequest.end_date}
-                    onChange={(e) => setLeaveRequest({ ...leaveRequest, end_date: e.target.value })}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-700 dark:text-gray-300 mb-2">{t('reason')}</label>
-                  <textarea
-                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    rows="3"
-                    value={leaveRequest.reason}
-                    onChange={(e) => setLeaveRequest({ ...leaveRequest, reason: e.target.value })}
-                    placeholder={t('enterReasonForLeave')}
-                    required
-                  ></textarea>
-                </div>
-                <div className="flex justify-end space-x-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowLeaveModal(false)}
-                    className="px-4 py-2 border rounded hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700 dark:text-white"
-                  >
-                    {t('cancel')}
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                  >
-                    {t('submitRequest')}
-                  </button>
-                </div>
-              </form>
-            </div>
+        {/* Recent Leave Requests */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Recent Leave Requests</h3>
+          <div className="overflow-x-auto">
+            <table className="min-w-full">
+              <thead>
+                <tr className="border-b border-gray-200 dark:border-gray-700">
+                  <th className="text-left py-3 px-4 text-gray-600 dark:text-gray-300">Type</th>
+                  <th className="text-left py-3 px-4 text-gray-600 dark:text-gray-300">Start Date</th>
+                  <th className="text-left py-3 px-4 text-gray-600 dark:text-gray-300">End Date</th>
+                  <th className="text-left py-3 px-4 text-gray-600 dark:text-gray-300">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {leaveRequests.slice(0, 5).map((request) => (
+                  <tr key={request.id} className="border-b border-gray-200 dark:border-gray-700">
+                    <td className="py-3 px-4 text-gray-800 dark:text-white capitalize">{request.leave_type}</td>
+                    <td className="py-3 px-4 text-gray-800 dark:text-white">{new Date(request.start_date).toLocaleDateString()}</td>
+                    <td className="py-3 px-4 text-gray-800 dark:text-white">{new Date(request.end_date).toLocaleDateString()}</td>
+                    <td className="py-3 px-4">
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                        request.status === 'approved' ? 'bg-green-100 text-green-800' :
+                        request.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {request.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        )}
-
-        {/* Attendance Modal */}
-        {showAttendanceModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <h2 className="text-xl font-semibold mb-4">{t('markAttendance')}</h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-gray-700 mb-2">{t('date')}</label>
-                  <input 
-                    type="date" 
-                    value={attendance.date}
-                    onChange={handleDateChange}
-                    className="w-full p-2 border rounded"
-                  />
-                </div>
-                <div className="text-center">
-                  <p className="text-gray-600 mb-2">{t('currentTime')}</p>
-                  <p className="text-2xl font-bold text-gray-800">{new Date().toLocaleTimeString()}</p>
-                </div>
-                {attendanceError && (
-                  <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                    {attendanceError}
-                  </div>
-                )}
-                <div className="space-y-2">
-                  <button 
-                    onClick={handleCheckIn}
-                    className="w-full px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-                  >
-                    {t('checkIn')}
-                  </button>
-                  <button 
-                    onClick={handleCheckOut}
-                    className="w-full px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-                  >
-                    {t('checkOut')}
-                  </button>
-                </div>
-                <div className="mt-4">
-                  <h3 className="font-semibold mb-2">{t('todayAttendance')}</h3>
-                  <div className="bg-gray-50 p-3 rounded">
-                    <p className="text-sm text-gray-600">{t('date')}: {attendance.date}</p>
-                    <p className="text-sm text-gray-600">{t('checkIn')}: {attendance.checkIn || t('notCheckedIn')}</p>
-                    <p className="text-sm text-gray-600">{t('checkOut')}: {attendance.checkOut || t('notCheckedOut')}</p>
-                  </div>
-                </div>
-                <div className="flex justify-end">
-                  <button
-                    onClick={() => {
-                      setShowAttendanceModal(false);
-                      setAttendanceError('');
-                    }}
-                    className="px-4 py-2 border rounded hover:bg-gray-100"
-                  >
-                    {t('close')}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
+
+      {/* Attendance Modal */}
+      {showAttendanceModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Mark Attendance</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-gray-600 dark:text-gray-300 mb-2">Date</label>
+                <input
+                  type="date"
+                  value={attendance.date}
+                  onChange={handleDateChange}
+                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                />
+              </div>
+              {attendanceError && (
+                <p className="text-red-500 text-sm">{attendanceError}</p>
+              )}
+              <div className="flex space-x-4">
+                <button
+                  onClick={handleCheckIn}
+                  className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                >
+                  Check In
+                </button>
+                <button
+                  onClick={handleCheckOut}
+                  className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  Check Out
+                </button>
+              </div>
+              <button
+                onClick={() => setShowAttendanceModal(false)}
+                className="w-full px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Leave Request Modal */}
+      {showLeaveModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Request Leave</h3>
+            <form onSubmit={handleLeaveSubmit} className="space-y-4">
+              <div>
+                <label className="block text-gray-600 dark:text-gray-300 mb-2">Leave Type</label>
+                <select
+                  value={leaveRequest.leave_type}
+                  onChange={(e) => setLeaveRequest(prev => ({ ...prev, leave_type: e.target.value }))}
+                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                >
+                  <option value="annual">Annual Leave</option>
+                  <option value="sick">Sick Leave</option>
+                  <option value="emergency">Emergency Leave</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-gray-600 dark:text-gray-300 mb-2">Start Date</label>
+                <input
+                  type="date"
+                  value={leaveRequest.start_date}
+                  onChange={(e) => setLeaveRequest(prev => ({ ...prev, start_date: e.target.value }))}
+                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-gray-600 dark:text-gray-300 mb-2">End Date</label>
+                <input
+                  type="date"
+                  value={leaveRequest.end_date}
+                  onChange={(e) => setLeaveRequest(prev => ({ ...prev, end_date: e.target.value }))}
+                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-gray-600 dark:text-gray-300 mb-2">Reason</label>
+                <textarea
+                  value={leaveRequest.reason}
+                  onChange={(e) => setLeaveRequest(prev => ({ ...prev, reason: e.target.value }))}
+                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  rows="3"
+                />
+              </div>
+              {leaveError && (
+                <p className="text-red-500 text-sm">{leaveError}</p>
+              )}
+              <div className="flex space-x-4">
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  Submit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowLeaveModal(false)}
+                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
-  )
-}
+  );
+};
 
 export default EmployeeDashboard;
