@@ -12,6 +12,16 @@ const EmployeeList = () => {
   const [filteredMembers, setFilteredMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedMember, setSelectedMember] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    email: '',
+    role: '',
+    status: '',
+    gender: '',
+    department: ''
+  });
   
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -116,6 +126,62 @@ const EmployeeList = () => {
         console.error('Error deleting member:', error);
         setError(error.message);
       }
+    }
+  };
+
+  const handleEditClick = (member) => {
+    setSelectedMember(member);
+    setEditFormData({
+      name: member.name || '',
+      email: member.email || '',
+      role: member.role || '',
+      status: member.status || '',
+      gender: member.gender || '',
+      department: member.department || ''
+    });
+    setShowEditModal(true);
+  };
+
+  const handleEditInputChange = (e) => {
+    const { name, value } = e.target;
+    setEditFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      // Update member table
+      const { error: memberError } = await supabase
+        .from('member')
+        .update({
+          name: editFormData.name,
+          email: editFormData.email,
+          gender: editFormData.gender,
+          department: editFormData.department
+        })
+        .eq('id', selectedMember.id);
+
+      if (memberError) throw memberError;
+
+      // Update permission table
+      const { error: permissionError } = await supabase
+        .from('permission')
+        .update({
+          role: editFormData.role,
+          status: editFormData.status
+        })
+        .eq('member_id', selectedMember.id);
+
+      if (permissionError) throw permissionError;
+
+      await fetchMembers(); // Refresh the list
+      setShowEditModal(false);
+    } catch (error) {
+      console.error('Error updating member:', error);
+      setError(error.message);
     }
   };
 
@@ -312,7 +378,7 @@ const EmployeeList = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <button
-                          onClick={() => {/* TODO: Implement edit functionality */}}
+                          onClick={() => handleEditClick(member)}
                           className="text-indigo-600 hover:text-indigo-900 mr-4"
                         >
                           <FaEdit className="w-5 h-5" />
@@ -328,6 +394,135 @@ const EmployeeList = () => {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Modal */}
+        {showEditModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">Edit Employee Details</h2>
+              <form onSubmit={handleEditSubmit}>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={editFormData.name}
+                      onChange={handleEditInputChange}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={editFormData.email}
+                      onChange={handleEditInputChange}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                    <select
+                      name="role"
+                      value={editFormData.role}
+                      onChange={handleEditInputChange}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      required
+                    >
+                      <option value="">Select a role</option>
+                      {uniqueRoles.map((role) => (
+                        <option key={role} value={role}>
+                          {role.charAt(0).toUpperCase() + role.slice(1)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select
+                      name="status"
+                      value={editFormData.status}
+                      onChange={handleEditInputChange}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      required
+                    >
+                      <option value="">Select status</option>
+                      {uniqueStatuses.map((status) => (
+                        <option key={status} value={status}>
+                          {status.charAt(0).toUpperCase() + status.slice(1)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+                    <select
+                      name="gender"
+                      value={editFormData.gender}
+                      onChange={handleEditInputChange}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      required
+                    >
+                      <option value="">Select gender</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                    <select
+                      name="department"
+                      value={editFormData.department}
+                      onChange={handleEditInputChange}
+                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      required
+                    >
+                      <option value="">Select Department</option>
+                      <option value="Administration">Administration</option>
+                      <option value="Data Analyst">Data Analyst</option>
+                      <option value="Designer">Designer</option>
+                      <option value="Developer">Developer</option>
+                      <option value="Human Resource">Human Resource</option>
+                      <option value="Training">Training</option>
+                    </select>
+                  </div>
+
+                  {error && (
+                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                      {error}
+                    </div>
+                  )}
+
+                  <div className="flex justify-end space-x-4">
+                    <button
+                      type="button"
+                      onClick={() => setShowEditModal(false)}
+                      className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                    >
+                      Save Changes
+                    </button>
+                  </div>
+                </div>
+              </form>
             </div>
           </div>
         )}
