@@ -2,19 +2,62 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import AdminSidebar, { AdminSidebarItem } from './AdminSidebar';
-import { FaHome, FaUsers, FaUserPlus, FaChartBar, FaCog, FaEdit, FaTrash } from 'react-icons/fa';
+import { FaHome, FaUsers, FaUserPlus, FaChartBar, FaCog, FaEdit, FaTrash, FaSearch } from 'react-icons/fa';
 import supabase from '../../../supabase-client';
 
 const EmployeeList = () => {
   const { session } = useAuth();
   const { t } = useLanguage();
   const [members, setMembers] = useState([]);
+  const [filteredMembers, setFilteredMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Search and filter states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [departmentFilter, setDepartmentFilter] = useState('');
 
   useEffect(() => {
     fetchMembers();
   }, []);
+
+  // Apply filters whenever search term or filters change
+  useEffect(() => {
+    filterMembers();
+  }, [members, searchTerm, roleFilter, statusFilter, departmentFilter]);
+
+  const filterMembers = () => {
+    let filtered = [...members];
+
+    // Apply search filter
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(member => 
+        member.name?.toLowerCase().includes(searchLower) ||
+        member.email?.toLowerCase().includes(searchLower) ||
+        member.department?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Apply role filter
+    if (roleFilter) {
+      filtered = filtered.filter(member => member.role === roleFilter);
+    }
+
+    // Apply status filter
+    if (statusFilter) {
+      filtered = filtered.filter(member => member.status === statusFilter);
+    }
+
+    // Apply department filter
+    if (departmentFilter) {
+      filtered = filtered.filter(member => member.department === departmentFilter);
+    }
+
+    setFilteredMembers(filtered);
+  };
 
   const fetchMembers = async () => {
     try {
@@ -40,6 +83,7 @@ const EmployeeList = () => {
       }));
       
       setMembers(transformedData);
+      setFilteredMembers(transformedData);
     } catch (error) {
       console.error('Error fetching members:', error);
       setError(error.message);
@@ -75,6 +119,11 @@ const EmployeeList = () => {
     }
   };
 
+  // Get unique roles, statuses, and departments for filter dropdowns
+  const uniqueRoles = [...new Set(members.map(member => member.role))];
+  const uniqueStatuses = [...new Set(members.map(member => member.status))];
+  const uniqueDepartments = [...new Set(members.map(member => member.department).filter(Boolean))];
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       <AdminSidebar>
@@ -109,6 +158,69 @@ const EmployeeList = () => {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Employee Management</h1>
           <p className="text-gray-600">View and manage all employees in the system</p>
+        </div>
+
+        {/* Search and Filter Section */}
+        <div className="mb-6 grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FaSearch className="text-gray-400" />
+            </div>
+            <input
+              type="text"
+              placeholder="Search employees..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">All Roles</option>
+            {uniqueRoles.map(role => (
+              <option key={role} value={role}>
+                {role.charAt(0).toUpperCase() + role.slice(1)}
+              </option>
+            ))}
+          </select>
+          <select
+            value={departmentFilter}
+            onChange={(e) => setDepartmentFilter(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">All Departments</option>
+            {uniqueDepartments.map(department => (
+              <option key={department} value={department}>
+                {department}
+              </option>
+            ))}
+          </select>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">All Statuses</option>
+            {uniqueStatuses.map(status => (
+              <option key={status} value={status}>
+                {status.charAt(0).toUpperCase() + status.slice(1)}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={() => {
+              setSearchTerm('');
+              setRoleFilter('');
+              setStatusFilter('');
+              setDepartmentFilter('');
+            }}
+            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500"
+          >
+            Clear Filters
+          </button>
         </div>
 
         {error && (
@@ -151,7 +263,7 @@ const EmployeeList = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {members.map((member) => (
+                  {filteredMembers.map((member) => (
                     <tr key={member.id}>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
