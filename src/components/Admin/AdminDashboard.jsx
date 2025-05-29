@@ -18,6 +18,7 @@ const AdminDashboard = () => {
     upcomingEvents: 0,
     unreadMessages: 0
   });
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
 
   // Sample data for charts
   const employeeStats = [
@@ -65,10 +66,16 @@ const AdminDashboard = () => {
         .eq('status', 'pending');
 
       // Fetch upcoming events
-      const { count: eventCount } = await supabase
+      const { data: events, count: eventCount } = await supabase
         .from('events')
-        .select('*', { count: 'exact', head: true })
-        .gte('start_time', new Date().toISOString());
+        .select('*', { count: 'exact' })
+        .gte('start_time', new Date().toISOString())
+        .order('start_time', { ascending: true })
+        .limit(3);
+
+      if (events) {
+        setUpcomingEvents(events);
+      }
 
       // Fetch unread messages
       const { count: messageCount } = await supabase
@@ -154,6 +161,16 @@ const AdminDashboard = () => {
     }
   ];
 
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -228,6 +245,49 @@ const AdminDashboard = () => {
           ))}
         </div>
 
+        {/* Upcoming Events */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold text-gray-800">Upcoming Events</h2>
+            <button
+              onClick={() => navigate('/admin/EventSchedule')}
+              className="text-blue-500 hover:text-blue-600"
+            >
+              View All
+            </button>
+          </div>
+          {upcomingEvents.length === 0 ? (
+            <p className="text-gray-500 text-center py-4">No upcoming events scheduled</p>
+          ) : (
+            <div className="space-y-4">
+              {upcomingEvents.map((event) => (
+                <div key={event.id} className="border-b border-gray-200 pb-4 last:border-0 last:pb-0">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-medium text-gray-900">{event.title}</h3>
+                      <p className="text-sm text-gray-500">{event.description}</p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {formatDate(event.start_time)} - {formatDate(event.end_time)}
+                      </p>
+                      {event.location && (
+                        <p className="text-sm text-gray-600">📍 {event.location}</p>
+                      )}
+                    </div>
+                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                      event.type === 'meeting' ? 'bg-blue-100 text-blue-800' :
+                      event.type === 'training' ? 'bg-green-100 text-green-800' :
+                      event.type === 'holiday' ? 'bg-purple-100 text-purple-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {event.type.charAt(0).toUpperCase() + event.type.slice(1)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Employee Growth Chart */}
@@ -265,7 +325,6 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-
         {/* Quick Actions */}
         <div className="mt-8">
           <h2 className="text-xl font-semibold text-gray-800 mb-4">
@@ -273,28 +332,28 @@ const AdminDashboard = () => {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <button
-              onClick={() => navigate('/employees')}
+              onClick={() => navigate('/admin/employees')}
               className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow"
             >
               <FaUsers className="w-6 h-6 text-blue-500 mb-2" />
               <p className="text-gray-800">{t('manageEmployees')}</p>
             </button>
             <button
-              onClick={() => navigate('/tasks')}
+              onClick={() => navigate('/admin/tasks')}
               className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow"
             >
               <FaTasks className="w-6 h-6 text-green-500 mb-2" />
               <p className="text-gray-800">{t('manageTasks')}</p>
             </button>
             <button
-              onClick={() => navigate('/schedule')}
+              onClick={() => navigate('/admin/EventSchedule')}
               className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow"
             >
               <FaCalendarAlt className="w-6 h-6 text-purple-500 mb-2" />
               <p className="text-gray-800">{t('manageSchedule')}</p>
             </button>
             <button
-              onClick={() => navigate('/chat')}
+              onClick={() => navigate('/admin/chat')}
               className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow"
             >
               <FaComments className="w-6 h-6 text-red-500 mb-2" />

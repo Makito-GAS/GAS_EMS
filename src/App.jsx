@@ -19,7 +19,8 @@ import LeaveRequests from './components/Admin/LeaveRequests';
 import DailyReports from './components/Admin/DailyReports';
 import PerformanceAnalytics from './components/Admin/PerformanceAnalytics';
 import Chat from './components/Chat/Chat';
-
+import AdminSettings from './components/Admin/AdminSettings';
+import EventSchedule from './components/Admin/EventSchedule';
 function App() {
   return (
     <Router>
@@ -62,6 +63,8 @@ function App() {
                       <Route path="daily-reports" element={<DailyReports />} />
                       <Route path="leave-requests" element={<LeaveRequests />} />
                       <Route path="chat" element={<Chat />} />
+                      <Route path="AdminSettings" element={<AdminSettings />} />
+                       <Route path="EventSchedule" element={<EventSchedule />} />
                       <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
                     </Routes>
                   </ProtectedRoute>
