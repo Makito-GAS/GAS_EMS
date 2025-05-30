@@ -12,7 +12,30 @@ const supabase = createClient(supabaseUrl, supabaseKey, {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 10
+    }
+  },
+  global: {
+    headers: {
+      'x-application-name': 'gas-ems'
+    }
   }
 });
+
+// Create a channel for connection monitoring
+const connectionChannel = supabase.channel('connection-monitor');
+
+// Set up connection monitoring
+connectionChannel
+  .on('system', { event: 'disconnected' }, () => {
+    console.log('WebSocket disconnected. Attempting to reconnect...');
+  })
+  .on('system', { event: 'connected' }, () => {
+    console.log('WebSocket reconnected successfully');
+  })
+  .subscribe();
 
 export default supabase;

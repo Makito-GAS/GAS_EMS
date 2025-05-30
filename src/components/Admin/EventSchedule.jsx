@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import AdminSidebar, { AdminSidebarItem } from './AdminSidebar';
 import { FaHome, FaUsers, FaUserPlus, FaChartBar, FaCog, FaCalendarAlt, FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
 import supabase from '../../../supabase-client';
+import supabaseAdmin from '../../../supabase-admin';
 import toast from 'react-hot-toast';
 
 const EventSchedule = () => {
@@ -24,9 +25,64 @@ const EventSchedule = () => {
     type: 'meeting' // meeting, training, holiday, other
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isConnected, setIsConnected] = useState(true);
+  const subscriptionRef = useRef(null);
 
   useEffect(() => {
     fetchEvents();
+    
+    // Set up WebSocket connection monitoring
+    const connectionChannel = supabase.channel('events-connection');
+    
+    connectionChannel
+      .on('system', { event: 'disconnected' }, () => {
+        setIsConnected(false);
+        console.log('WebSocket disconnected');
+      })
+      .on('system', { event: 'connected' }, () => {
+        setIsConnected(true);
+        console.log('WebSocket reconnected');
+        // Refresh events after reconnection
+        fetchEvents();
+      })
+      .subscribe();
+
+    // Subscribe to real-time updates
+    const subscription = supabase
+      .channel('events')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'events'
+      }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          setEvents(prev => [...prev, payload.new]);
+        } else if (payload.eventType === 'UPDATE') {
+          setEvents(prev => prev.map(event => 
+            event.id === payload.new.id ? payload.new : event
+          ));
+        } else if (payload.eventType === 'DELETE') {
+          setEvents(prev => prev.filter(event => event.id !== payload.old.id));
+        }
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to events');
+        } else if (status === 'CLOSED') {
+          console.log('Subscription closed');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Channel error occurred');
+        }
+      });
+
+    subscriptionRef.current = subscription;
+
+    return () => {
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe();
+      }
+      connectionChannel.unsubscribe();
+    };
   }, []);
 
   const fetchEvents = async () => {
@@ -135,26 +191,24 @@ const EventSchedule = () => {
       try {
         setLoading(true);
         
-        // Perform the delete operation
-        const { error } = await supabase
+        // Use admin client for deletion
+        const { error: deleteError } = await supabaseAdmin
           .from('events')
           .delete()
           .eq('id', eventId);
 
-        if (error) {
-          console.error('Delete error:', error);
-          throw error;
+        if (deleteError) {
+          console.error('Delete error:', deleteError);
+          throw deleteError;
         }
-        
-        toast.success('Event deleted successfully');
+
         // Update the events list by filtering out the deleted event
         setEvents(prevEvents => prevEvents.filter(event => event.id !== eventId));
         
-        // Refresh the events list to ensure sync with database
-        await fetchEvents();
+        toast.success('Event deleted successfully');
       } catch (error) {
-        console.error('Error deleting event:', error);
-        toast.error('Failed to delete event: ' + error.message);
+        console.error('Error in delete process:', error);
+        toast.error('Failed to delete event: ' + (error.message || 'Unknown error'));
         // Refresh the events list to ensure UI is in sync with database
         await fetchEvents();
       } finally {

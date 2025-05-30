@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { Link, useNavigate } from 'react-router-dom'
-import { FaUsers, FaTasks, FaChartLine, FaCalendarAlt, FaComments } from 'react-icons/fa'
+import { FaUsers, FaTasks, FaChartLine, FaCalendarAlt, FaComments, FaFileAlt } from 'react-icons/fa'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
 import { useLanguage } from '../../context/LanguageContext'
 import AdminSidebar, { AdminSidebarItem } from './AdminSidebar'
@@ -207,6 +207,11 @@ const AdminDashboard = () => {
           icon={<FaChartBar className="w-6 h-6" />}
           text="Reports"
           path="/admin/reports"
+        />
+        <AdminSidebarItem 
+          icon={<FaFileAlt className="w-6 h-6" />}
+          text="Daily Reports"
+          path="/admin/daily-reports"
         />
         <AdminSidebarItem 
           icon={<FaCog className="w-6 h-6" />}

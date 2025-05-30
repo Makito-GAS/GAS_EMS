@@ -26,7 +26,7 @@ const AdminSidebar = ({ children }) => {
   };
 
   return (
-    <aside  className="fixed top-0 left-0 h-full w-64 bg-gray-800 shadow-lg z-50">
+    <aside className="fixed top-0 left-0 h-full w-64 bg-gray-800 shadow-lg z-50">
       <nav className={`h-full flex flex-col ${expanded ? 'w-64' : 'w-20'} transition-all duration-300 ease-in-out`}>
         <div className="p-4 pb-2 flex justify-between items-center">
           <AnimatedLogo className={`overflow-hidden transition-all duration-300 ${expanded ? "w-32" : "w-0"}`} />
@@ -42,11 +42,6 @@ const AdminSidebar = ({ children }) => {
           {React.Children.map(children, child => 
             React.cloneElement(child, { expanded })
           )}
-          <AdminSidebarItem 
-            icon={<FaFileAlt className="w-6 h-6" />}
-            text="Daily Reports"
-            path="/admin/daily-reports"
-          />
         </ul>
 
         {/* User details */}
@@ -77,31 +72,32 @@ const AdminSidebar = ({ children }) => {
   );
 };
 
-export const AdminSidebarItem = ({ icon, text, path, onClick, expanded }) => {
-  if (onClick) {
-    return (
-      <button
-        onClick={onClick}
-        className="w-full flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white transition-colors rounded-lg"
-      >
-        {icon}
-        {expanded && <span className="ml-3">{text}</span>}
-      </button>
-    );
-  }
+export const AdminSidebarItem = ({ icon, text, path, expanded = true, onClick }) => {
+  const { t } = useLanguage();
+  const isActive = window.location.pathname === path;
 
   return (
-    <NavLink
-      to={path}
-      className={({ isActive }) =>
-        `flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white transition-colors rounded-lg ${
-          isActive ? 'bg-gray-700 text-white' : ''
-        }`
-      }
-    >
-      {icon}
-      {expanded && <span className="ml-3">{text}</span>}
-    </NavLink>
+    <li>
+      {path ? (
+        <NavLink
+          to={path}
+          className={`flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors ${
+            isActive ? 'bg-gray-700' : ''
+          }`}
+        >
+          <span className="flex-shrink-0">{icon}</span>
+          {expanded && <span className="ml-3">{text}</span>}
+        </NavLink>
+      ) : (
+        <button
+          onClick={onClick}
+          className="flex items-center w-full px-4 py-2 text-gray-300 hover:bg-gray-700 rounded-lg transition-colors"
+        >
+          <span className="flex-shrink-0">{icon}</span>
+          {expanded && <span className="ml-3">{text}</span>}
+        </button>
+      )}
+    </li>
   );
 };
 

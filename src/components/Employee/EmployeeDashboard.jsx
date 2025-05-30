@@ -90,13 +90,45 @@ const EmployeeDashboard = () => {
   const fetchLeaveBalance = async () => {
     try {
       setLeaveLoading(true);
-      const { data: approvedLeaves, error } = await supabase
+      
+      // First, get the leave policy for the employee
+      const { data: policy, error: policyError } = await supabase
+        .from('leave_policy')
+        .select('*')
+        .eq('member_id', session?.user?.id)
+        .single();
+
+      if (policyError && policyError.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+        throw policyError;
+      }
+
+      // If no policy exists, create one with default values
+      if (!policy) {
+        const { data: newPolicy, error: createError } = await supabase
+          .from('leave_policy')
+          .insert([
+            {
+              member_id: session?.user?.id,
+              annual_leave: 15,
+              sick_leave: 10,
+              emergency_leave: 5
+            }
+          ])
+          .select()
+          .single();
+
+        if (createError) throw createError;
+        policy = newPolicy;
+      }
+
+      // Get approved leave requests
+      const { data: approvedLeaves, error: leavesError } = await supabase
         .from('leave_requests')
         .select('*')
         .eq('member_id', session?.user?.id)
         .eq('status', 'approved');
 
-      if (error) throw error;
+      if (leavesError) throw leavesError;
 
       // Calculate used leave days
       const usedLeaves = approvedLeaves.reduce((acc, leave) => {
@@ -110,9 +142,9 @@ const EmployeeDashboard = () => {
 
       // Calculate remaining leave days
       setLeaveBalance({
-        annual: 15 - (usedLeaves.annual || 0),
-        sick: 10 - (usedLeaves.sick || 0),
-        emergency: 5 - (usedLeaves.emergency || 0)
+        annual: policy.annual_leave - (usedLeaves.annual || 0),
+        sick: policy.sick_leave - (usedLeaves.sick || 0),
+        emergency: policy.emergency_leave - (usedLeaves.emergency || 0)
       });
     } catch (error) {
       console.error('Error fetching leave balance:', error);
@@ -182,6 +214,23 @@ const EmployeeDashboard = () => {
     }
 
     try {
+      // First check if attendance record already exists for today
+      const { data: existingAttendance, error: checkError } = await supabase
+        .from('attendance')
+        .select('*')
+        .eq('member_id', session?.user?.id)
+        .eq('date', attendance.date)
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        throw checkError;
+      }
+
+      if (existingAttendance) {
+        setAttendanceError('You have already checked in for this date');
+        return;
+      }
+
       const { error } = await supabase
         .from('attendance')
         .insert([
@@ -200,6 +249,7 @@ const EmployeeDashboard = () => {
         ...prev,
         checkIn: currentTime.toLocaleTimeString()
       }));
+      setShowAttendanceModal(false);
     } catch (error) {
       console.error('Error marking attendance:', error);
       setAttendanceError('Failed to mark attendance. Please try again.');
@@ -207,15 +257,36 @@ const EmployeeDashboard = () => {
   };
 
   const handleCheckOut = async () => {
-    if (!attendance.checkIn) {
-      setAttendanceError('Please check in first');
-      return;
-    }
-
     try {
+      // First get the existing attendance record
+      const { data: existingAttendance, error: checkError } = await supabase
+        .from('attendance')
+        .select('*')
+        .eq('member_id', session?.user?.id)
+        .eq('date', attendance.date)
+        .single();
+
+      if (checkError) {
+        if (checkError.code === 'PGRST116') {
+          setAttendanceError('No check-in record found for this date');
+        } else {
+          throw checkError;
+        }
+        return;
+      }
+
+      if (existingAttendance.check_out) {
+        setAttendanceError('You have already checked out for this date');
+        return;
+      }
+
+      const currentTime = new Date();
       const { error } = await supabase
         .from('attendance')
-        .update({ check_out: new Date().toISOString() })
+        .update({ 
+          check_out: currentTime.toISOString(),
+          updated_at: currentTime.toISOString()
+        })
         .eq('member_id', session?.user?.id)
         .eq('date', attendance.date);
 
@@ -224,8 +295,9 @@ const EmployeeDashboard = () => {
       setAttendanceError('');
       setAttendance(prev => ({
         ...prev,
-        checkOut: new Date().toLocaleTimeString()
+        checkOut: currentTime.toLocaleTimeString()
       }));
+      setShowAttendanceModal(false);
     } catch (error) {
       console.error('Error marking checkout:', error);
       setAttendanceError('Failed to mark checkout. Please try again.');
@@ -260,13 +332,6 @@ const EmployeeDashboard = () => {
           text="Settings"
           path="/employee/settings"
         />
-        <div className="mt-auto pt-4 border-t border-gray-700">
-          <SidebarItem 
-            icon={<FaSignOutAlt className="w-6 h-6" />}
-            text="Sign Out"
-            onClick={handleSignOut}
-          />
-        </div>
       </Sidebar>
 
       <div className="flex-1 p-8">
