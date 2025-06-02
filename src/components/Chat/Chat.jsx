@@ -632,6 +632,12 @@ const Chat = () => {
             <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
+                  <button
+                    onClick={() => navigate(-1)}
+                    className="mr-4 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <FaArrowLeft className="text-gray-600 dark:text-gray-300" />
+                  </button>
                   <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center mr-3 ring-2 ring-offset-2 ring-offset-white dark:ring-offset-gray-900 ring-blue-500">
                     <FaUser className="text-blue-600 dark:text-blue-400" />
                   </div>
