@@ -14,29 +14,12 @@ const AdminDashboard = () => {
   const { t } = useLanguage();
   const [stats, setStats] = useState({
     totalEmployees: 0,
-    activeTasks: 0,
     upcomingEvents: 0,
     unreadMessages: 0
   });
   const [upcomingEvents, setUpcomingEvents] = useState([]);
-
-  // Sample data for charts
-  const employeeStats = [
-    { name: 'Jan', total: 40, active: 35 },
-    { name: 'Feb', total: 45, active: 40 },
-    { name: 'Mar', total: 50, active: 45 },
-    { name: 'Apr', total: 55, active: 50 },
-    { name: 'May', total: 60, active: 55 },
-    { name: 'Jun', total: 65, active: 60 },
-  ];
-
-  const performanceData = [
-    { name: 'Mon', attendance: 95, productivity: 88 },
-    { name: 'Tue', attendance: 92, productivity: 85 },
-    { name: 'Wed', attendance: 90, productivity: 90 },
-    { name: 'Thu', attendance: 88, productivity: 87 },
-    { name: 'Fri', attendance: 85, productivity: 92 },
-  ];
+  const [performanceData, setPerformanceData] = useState([]);
+  const [employeeStats, setEmployeeStats] = useState([]);
 
   // Debounce function
   const debounce = (func, wait) => {
@@ -58,12 +41,6 @@ const AdminDashboard = () => {
       const { count: employeeCount } = await supabase
         .from('member')
         .select('*', { count: 'exact', head: true });
-
-      // Fetch active tasks
-      const { count: taskCount } = await supabase
-        .from('tasks')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending');
 
       // Fetch upcoming events
       const { data: events, count: eventCount } = await supabase
@@ -87,7 +64,6 @@ const AdminDashboard = () => {
       setStats(prev => ({
         ...prev,
         totalEmployees: employeeCount || 0,
-        activeTasks: taskCount || 0,
         upcomingEvents: eventCount || 0,
         unreadMessages: messageCount || 0
       }));
@@ -103,7 +79,11 @@ const AdminDashboard = () => {
   );
 
   useEffect(() => {
-    fetchStats();
+    if (session?.user) {
+      fetchStats();
+      fetchAttendanceData();
+      fetchEmployeePerformance();
+    }
     
     // Subscribe to message updates
     const subscription = supabase
@@ -134,18 +114,215 @@ const AdminDashboard = () => {
     };
   }, [session, debouncedFetchStats]);
 
+  const fetchAttendanceData = async () => {
+    try {
+      // Get the start of the current week
+      const startOfWeek = new Date();
+      startOfWeek.setHours(0, 0, 0, 0);
+      startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+
+      // Fetch attendance records for the current week
+      const { data: attendanceRecords, error } = await supabase
+        .from('attendance')
+        .select(`
+          *,
+          member:member_id (
+            name,
+            department
+          )
+        `)
+        .gte('date', startOfWeek.toISOString())
+        .order('date', { ascending: true });
+
+      if (error) throw error;
+
+      // Process attendance data by day
+      const attendanceByDay = {};
+      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+      
+      // Initialize attendance data for each day
+      days.forEach(day => {
+        attendanceByDay[day] = {
+          onTime: 0,
+          late: 0,
+          total: 0
+        };
+      });
+
+      // Count attendance for each day
+      attendanceRecords.forEach(record => {
+        const date = new Date(record.date);
+        const dayIndex = date.getDay() - 1; // Convert to 0-4 for Mon-Fri
+        
+        if (dayIndex >= 0 && dayIndex < 5) { // Only count weekdays
+          const day = days[dayIndex];
+          attendanceByDay[day].total++;
+          
+          if (record.status === 'present') {
+            attendanceByDay[day].onTime++;
+          } else if (record.status === 'late') {
+            attendanceByDay[day].late++;
+          }
+        }
+      });
+
+      // Calculate attendance percentages for each day
+      const processedData = days.map(day => ({
+        name: day,
+        onTime: attendanceByDay[day].total > 0 
+          ? Math.round((attendanceByDay[day].onTime / attendanceByDay[day].total) * 100)
+          : 0,
+        late: attendanceByDay[day].total > 0 
+          ? Math.round((attendanceByDay[day].late / attendanceByDay[day].total) * 100)
+          : 0
+      }));
+
+      setPerformanceData(processedData);
+    } catch (error) {
+      console.error('Error fetching attendance data:', error);
+    }
+  };
+
+  const fetchEmployeePerformance = async () => {
+    try {
+      // Get the start of the last 6 months
+      const startDate = new Date();
+      startDate.setMonth(startDate.getMonth() - 6);
+
+      // Fetch all employees
+      const { data: employees, error: employeesError } = await supabase
+        .from('member')
+        .select('id, name, created_at')
+        .order('created_at', { ascending: true });
+
+      if (employeesError) throw employeesError;
+
+      // Fetch attendance records
+      const { data: attendanceRecords, error: attendanceError } = await supabase
+        .from('attendance')
+        .select('*')
+        .gte('date', startDate.toISOString());
+
+      if (attendanceError) throw attendanceError;
+
+      // Fetch daily reports
+      const { data: dailyReports, error: dailyReportsError } = await supabase
+        .from('daily_reports')
+        .select('*')
+        .gte('created_at', startDate.toISOString());
+
+      if (dailyReportsError) throw dailyReportsError;
+
+      // Process data by month
+      const monthlyStats = {};
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+      // Initialize monthly stats
+      months.forEach(month => {
+        monthlyStats[month] = {
+          total: 0,
+          active: 0,
+          performance: 0
+        };
+      });
+
+      // Calculate monthly statistics
+      employees.forEach(employee => {
+        const joinDate = new Date(employee.created_at);
+        const joinMonth = months[joinDate.getMonth()];
+        
+        // Count total employees
+        for (let i = months.indexOf(joinMonth); i < months.length; i++) {
+          monthlyStats[months[i]].total++;
+        }
+      });
+
+      // Calculate active employees and performance metrics
+      const currentDate = new Date();
+      const currentMonth = months[currentDate.getMonth()];
+      
+      for (let i = 0; i <= months.indexOf(currentMonth); i++) {
+        const month = months[i];
+        const monthStart = new Date(currentDate.getFullYear(), i, 1);
+        const monthEnd = new Date(currentDate.getFullYear(), i + 1, 0);
+
+        // Calculate active employees (those with attendance or reports)
+        const activeEmployees = new Set();
+        
+        // Check attendance records
+        attendanceRecords.forEach(record => {
+          const recordDate = new Date(record.date);
+          if (recordDate >= monthStart && recordDate <= monthEnd) {
+            activeEmployees.add(record.member_id);
+          }
+        });
+
+        // Check daily reports
+        dailyReports.forEach(report => {
+          const reportDate = new Date(report.created_at);
+          if (reportDate >= monthStart && reportDate <= monthEnd) {
+            activeEmployees.add(report.member_id);
+          }
+        });
+
+        monthlyStats[month].active = activeEmployees.size;
+
+        // Calculate performance score
+        let totalPerformance = 0;
+        let performanceCount = 0;
+
+        // Calculate attendance performance
+        const monthAttendance = attendanceRecords.filter(record => {
+          const recordDate = new Date(record.date);
+          return recordDate >= monthStart && recordDate <= monthEnd;
+        });
+
+        if (monthAttendance.length > 0) {
+          const onTimeCount = monthAttendance.filter(record => record.status === 'present').length;
+          const attendanceScore = (onTimeCount / monthAttendance.length) * 100;
+          totalPerformance += attendanceScore;
+          performanceCount++;
+        }
+
+        // Calculate daily report performance
+        const monthReports = dailyReports.filter(report => {
+          const reportDate = new Date(report.created_at);
+          return reportDate >= monthStart && reportDate <= monthEnd;
+        });
+
+        if (monthReports.length > 0) {
+          const onTrackCount = monthReports.filter(report => report.task_status === 'On Track').length;
+          const reportScore = (onTrackCount / monthReports.length) * 100;
+          totalPerformance += reportScore;
+          performanceCount++;
+        }
+
+        // Calculate average performance
+        monthlyStats[month].performance = performanceCount > 0 
+          ? Math.round(totalPerformance / performanceCount)
+          : 0;
+      }
+
+      // Convert to array format for the chart
+      const processedData = months.map(month => ({
+        name: month,
+        total: monthlyStats[month].total,
+        active: monthlyStats[month].active,
+        performance: monthlyStats[month].performance
+      }));
+
+      setEmployeeStats(processedData);
+    } catch (error) {
+      console.error('Error fetching employee performance:', error);
+    }
+  };
+
   const statCards = [
     {
       icon: <FaUsers className="w-8 h-8" />,
       title: t('totalEmployees'),
       value: stats.totalEmployees,
       color: 'bg-blue-500'
-    },
-    {
-      icon: <FaTasks className="w-8 h-8" />,
-      title: t('activeTasks'),
-      value: stats.activeTasks,
-      color: 'bg-green-500'
     },
     {
       icon: <FaCalendarAlt className="w-8 h-8" />,
@@ -297,7 +474,7 @@ const AdminDashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Employee Growth Chart */}
           <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-lg font-semibold text-gray-700 mb-4">Employee Growth</h3>
+            <h3 className="text-lg font-semibold text-gray-700 mb-4">Employee Performance</h3>
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={employeeStats}>
@@ -305,8 +482,9 @@ const AdminDashboard = () => {
                   <XAxis dataKey="name" />
                   <YAxis />
                   <Tooltip />
-                  <Area type="monotone" dataKey="total" stroke="#8884d8" fill="#8884d8" />
-                  <Area type="monotone" dataKey="active" stroke="#82ca9d" fill="#82ca9d" />
+                  <Area type="monotone" dataKey="total" stroke="#8884d8" fill="#8884d8" name="Total Employees" />
+                  <Area type="monotone" dataKey="active" stroke="#82ca9d" fill="#82ca9d" name="Active Employees" />
+                  <Area type="monotone" dataKey="performance" stroke="#ff7300" fill="#ff7300" name="Performance %" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -314,7 +492,7 @@ const AdminDashboard = () => {
 
           {/* Performance Chart */}
           <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-lg font-semibold text-gray-700 mb-4">Weekly Performance</h3>
+            <h3 className="text-lg font-semibold text-gray-700 mb-4">Weekly Attendance</h3>
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={performanceData}>
@@ -322,8 +500,8 @@ const AdminDashboard = () => {
                   <XAxis dataKey="name" />
                   <YAxis />
                   <Tooltip />
-                  <Bar dataKey="attendance" fill="#8884d8" />
-                  <Bar dataKey="productivity" fill="#82ca9d" />
+                  <Bar dataKey="onTime" fill="#4CAF50" name="On Time %" />
+                  <Bar dataKey="late" fill="#FFA726" name="Late %" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -335,20 +513,13 @@ const AdminDashboard = () => {
           <h2 className="text-xl font-semibold text-gray-800 mb-4">
             {t('quickActions')}
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <button
               onClick={() => navigate('/admin/employees')}
               className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow"
             >
               <FaUsers className="w-6 h-6 text-blue-500 mb-2" />
               <p className="text-gray-800">{t('manageEmployees')}</p>
-            </button>
-            <button
-              onClick={() => navigate('/admin/tasks')}
-              className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow"
-            >
-              <FaTasks className="w-6 h-6 text-green-500 mb-2" />
-              <p className="text-gray-800">{t('manageTasks')}</p>
             </button>
             <button
               onClick={() => navigate('/admin/EventSchedule')}
