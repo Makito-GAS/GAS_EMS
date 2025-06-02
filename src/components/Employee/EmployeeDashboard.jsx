@@ -90,36 +90,24 @@ const EmployeeDashboard = () => {
   const fetchLeaveBalance = async () => {
     try {
       setLeaveLoading(true);
-      
-      // First, get the leave policy for the employee
-      const { data: policy, error: policyError } = await supabase
-        .from('leave_policy')
-        .select('*')
-        .eq('member_id', session?.user?.id)
+      let policy;
+
+      // Get leave policy
+      const { data: newPolicy, error: createError } = await supabase
+        .from('leave_policies')
+        .upsert([
+          {
+            member_id: session?.user?.id,
+            annual_leave: 15,
+            sick_leave: 10,
+            emergency_leave: 5
+          }
+        ])
+        .select()
         .single();
 
-      if (policyError && policyError.code !== 'PGRST116') { // PGRST116 is "no rows returned"
-        throw policyError;
-      }
-
-      // If no policy exists, create one with default values
-      if (!policy) {
-        const { data: newPolicy, error: createError } = await supabase
-          .from('leave_policy')
-          .insert([
-            {
-              member_id: session?.user?.id,
-              annual_leave: 15,
-              sick_leave: 10,
-              emergency_leave: 5
-            }
-          ])
-          .select()
-          .single();
-
-        if (createError) throw createError;
-        policy = newPolicy;
-      }
+      if (createError) throw createError;
+      policy = newPolicy;
 
       // Get approved leave requests
       const { data: approvedLeaves, error: leavesError } = await supabase

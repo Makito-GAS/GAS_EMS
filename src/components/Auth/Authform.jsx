@@ -64,7 +64,7 @@ const Authform = () => {
           <div className='flex flex-col py-4'>
           <input
            type="email" 
-           placeholder="Email"
+           placeholder=" gas Email "
           className='p-3 mt-6'
            onChange={(e)=>setEmail(e.target.value)}
           />
