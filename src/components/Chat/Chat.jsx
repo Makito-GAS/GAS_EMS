@@ -458,26 +458,34 @@ const Chat = () => {
       {/* Users List */}
       <div className="w-1/4 border-r border-gray-200 dark:border-gray-700 flex flex-col">
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="relative">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                handleSearch(e.target.value);
-              }}
-              placeholder="Search members and messages..."
-              className="w-full pl-10 pr-10 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            />
-            <FaSearch className="absolute left-3 top-3 text-gray-400" />
-            {searchQuery && (
-              <button
-                onClick={clearSearch}
-                className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-              >
-                <FaTimes />
-              </button>
-            )}
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            >
+              <FaArrowLeft className="text-gray-600 dark:text-gray-300" />
+            </button>
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  handleSearch(e.target.value);
+                }}
+                placeholder="Search members and messages..."
+                className="w-full pl-10 pr-10 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              />
+              <FaSearch className="absolute left-3 top-3 text-gray-400" />
+              {searchQuery && (
+                <button
+                  onClick={clearSearch}
+                  className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                >
+                  <FaTimes />
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -632,12 +640,6 @@ const Chat = () => {
             <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <button
-                    onClick={() => navigate(-1)}
-                    className="mr-4 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    <FaArrowLeft className="text-gray-600 dark:text-gray-300" />
-                  </button>
                   <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center mr-3 ring-2 ring-offset-2 ring-offset-white dark:ring-offset-gray-900 ring-blue-500">
                     <FaUser className="text-blue-600 dark:text-blue-400" />
                   </div>
