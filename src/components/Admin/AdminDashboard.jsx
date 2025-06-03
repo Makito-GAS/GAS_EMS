@@ -358,8 +358,8 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <AdminSidebar className=''>
+    <div className="flex min-h-screen bg-gray-50  dark:bg-gray-900">
+      <AdminSidebar>
         <AdminSidebarItem 
           icon={<FaHome className="w-6 h-6" />}
           text="Dashboard"
@@ -393,14 +393,14 @@ const AdminDashboard = () => {
         <AdminSidebarItem 
           icon={<FaCog className="w-6 h-6" />}
           text="Settings"
-          path="/admin/settings"
+          path="/admin/AdminSettings"
         />
       </AdminSidebar>
 
       <div className="ml-64 flex-1 p-8 overflow-y-auto h-screen">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Admin Dashboard</h1>
-          <p className="text-gray-600">Welcome back, {session?.user?.email?.split('@')[0] || 'Admin'}</p>
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">Admin Dashboard</h1>
+          <p className="text-gray-600 dark:text-white">Welcome back, {session?.user?.email?.split('@')[0] || 'Admin'}</p>
         </div>
 
         {/* Quick Stats */}
@@ -408,14 +408,14 @@ const AdminDashboard = () => {
           {statCards.map((card, index) => (
             <div
               key={index}
-              className="bg-white p-6 rounded-lg shadow-md"
+              className="bg-white p-6 rounded-lg shadow-md  dark:bg-gray-800"
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-500 text-sm">
+                  <p className="text-gray-500 dark:text-white text-sm">
                     {card.title}
                   </p>
-                  <p className="text-3xl font-bold text-gray-800 mt-2">
+                  <p className="text-3xl font-bold text-gray-800 dark:text-white mt-2">
                     {card.value}
                   </p>
                 </div>
@@ -428,9 +428,9 @@ const AdminDashboard = () => {
         </div>
 
         {/* Upcoming Events */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-gray-800">Upcoming Events</h2>
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-white">Upcoming Events</h2>
             <button
               onClick={() => navigate('/admin/EventSchedule')}
               className="text-blue-500 hover:text-blue-600"
@@ -439,7 +439,7 @@ const AdminDashboard = () => {
             </button>
           </div>
           {upcomingEvents.length === 0 ? (
-            <p className="text-gray-500 text-center py-4">No upcoming events scheduled</p>
+            <p className="text-gray-500 dark:text-white text-center py-4">No upcoming events scheduled</p>
           ) : (
             <div className="space-y-4">
               {upcomingEvents.map((event) => (
@@ -473,8 +473,8 @@ const AdminDashboard = () => {
         {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Employee Growth Chart */}
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-lg font-semibold text-gray-700 mb-4">Employee Performance</h3>
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+            <h3 className="text-lg font-semibold text-gray-700 dark:text-white mb-4">Employee Performance</h3>
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={employeeStats}>
@@ -491,8 +491,8 @@ const AdminDashboard = () => {
           </div>
 
           {/* Performance Chart */}
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-lg font-semibold text-gray-700 mb-4">Weekly Attendance</h3>
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+            <h3 className="text-lg font-semibold text-gray-700 dark:text-white mb-4">Weekly Attendance</h3>
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={performanceData}>
@@ -510,30 +510,30 @@ const AdminDashboard = () => {
 
         {/* Quick Actions */}
         <div className="mt-8">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">
+          <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">
             {t('quickActions')}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <button
               onClick={() => navigate('/admin/employees')}
-              className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow"
+              className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow"
             >
               <FaUsers className="w-6 h-6 text-blue-500 mb-2" />
-              <p className="text-gray-800">{t('manageEmployees')}</p>
+              <p className="text-gray-800 dark:text-white">{t('manageEmployees')}</p>
             </button>
             <button
               onClick={() => navigate('/admin/EventSchedule')}
-              className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow"
+              className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow"
             >
               <FaCalendarAlt className="w-6 h-6 text-purple-500 mb-2" />
-              <p className="text-gray-800">{t('manageSchedule')}</p>
+              <p className="text-gray-800 dark:text-white">{t('manageSchedule')}</p>
             </button>
             <button
               onClick={() => navigate('/admin/chat')}
-              className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow"
+              className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow"
             >
               <FaComments className="w-6 h-6 text-red-500 mb-2" />
-              <p className="text-gray-800">{t('openChat')}</p>
+              <p className="text-gray-800 dark:text-white">{t('openChat')}</p>
             </button>
           </div>
         </div>
