@@ -55,6 +55,7 @@ export const AuthProvider = ({ children }) => {
   const [session, setSession] = useState(null);
   const [error, setError] = useState(null); 
   const [userRole, setUserRole] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const signUpNewUser = async (email, password) => {
     try {
@@ -76,29 +77,77 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({data:{session}}) => {
-     setSession(session);
-    })
- 
-     supabase.auth.onAuthStateChange((_event, session) => {
-       setSession(session);
+  const fetchUserRole = async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('permission')
+        .select('role')
+        .eq('member_id', userId)
+        .single();
 
-       if (session) {
+      if (!error && data) {
+        setUserRole(data.role);
+        // Store role in localStorage for persistence
+        localStorage.setItem('userRole', data.role);
+      } else {
+        console.error('Error fetching role:', error);
+      }
+    } catch (error) {
+      console.error('Error in fetchUserRole:', error);
+    }
+  };
+
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session) {
+        // Try to get role from localStorage first
+        const storedRole = localStorage.getItem('userRole');
+        if (storedRole) {
+          setUserRole(storedRole);
+        }
+        // Then fetch fresh role from database
         fetchUserRole(session.user.id);
       }
-     });
-   }, []);
+      setLoading(false);
+    });
 
-   const signIn = async (email, password) => {
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (session) {
+        // Try to get role from localStorage first
+        const storedRole = localStorage.getItem('userRole');
+        if (storedRole) {
+          setUserRole(storedRole);
+        }
+        // Then fetch fresh role from database
+        fetchUserRole(session.user.id);
+      } else {
+        // Clear role when logged out
+        setUserRole(null);
+        localStorage.removeItem('userRole');
+      }
+      setLoading(false);
+    });
+
+    // Cleanup subscription
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const signIn = async (email, password) => {
     try {
-      const {data, error} = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: email,
         password: password,
-      })
+      });
+      
       if (error) {
         setError(error.message);
-        return {success: false, error: error.message};
+        return { success: false, error: error.message };
       } else {
         setError(null);
         // Fetch user role after successful login
@@ -110,12 +159,14 @@ export const AuthProvider = ({ children }) => {
 
         if (roleError) {
           console.error('Error fetching role:', roleError);
-          return {success: false, error: "Error fetching user role"};
+          return { success: false, error: "Error fetching user role" };
         }
 
         setUserRole(roleData.role);
+        localStorage.setItem('userRole', roleData.role);
+        
         return {
-          success: true, 
+          success: true,
           data: data,
           role: roleData.role
         };
@@ -123,39 +174,27 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       const errorMessage = err.message || "An unexpected error occurred";
       setError(errorMessage);
-      return {success: false, error: errorMessage};
+      return { success: false, error: errorMessage };
     }
-  }
+  };
 
   const signOut = async () => {
-    const {error} = await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
     if (error) {
       setError(error.message);
     } else {
       setError(null);
+      setUserRole(null);
+      localStorage.removeItem('userRole');
       console.log("signed out");
-    }
-  }
-
-  const fetchUserRole = async (userId) => {
-    const { data, error } = await supabase
-      .from('permission')
-      .select('role')
-      .eq('member_id', userId)
-      .single();
-
-    if (!error) {
-      setUserRole(data.role);
-    } else {
-      console.error('Error fetching role:', error);
     }
   };
 
   return (
-    <AuthContext.Provider value={{ session, signUpNewUser, signIn, signOut, createMember, userRole }}>
-        {children}
+    <AuthContext.Provider value={{ session, signUpNewUser, signIn, signOut, createMember, userRole, loading }}>
+      {children}
     </AuthContext.Provider>
-  )
+  );
 };
 
 export const useAuth = () => {

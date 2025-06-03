@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import supabase from '../../../supabase-client';
+import { toast } from 'react-hot-toast';
 
 const WeeklyReportForm = ({ onClose, onSuccess }) => {
   const { session } = useAuth();
@@ -22,13 +23,37 @@ const WeeklyReportForm = ({ onClose, onSuccess }) => {
     additional_notes: ''
   });
 
+  useEffect(() => {
+    fetchMemberDetails();
+  }, []);
+
+  const fetchMemberDetails = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('member')
+        .select('name, department')
+        .eq('id', session.user.id)
+        .single();
+
+      if (error) throw error;
+
+      setWeeklyReport(prev => ({
+        ...prev,
+        full_name: data.name,
+        department: data.department
+      }));
+    } catch (error) {
+      console.error('Error fetching member details:', error);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       setError(null);
       
       // Validate required fields
-      if (!weeklyReport.full_name || !weeklyReport.department || !weeklyReport.weekly_accomplishments) {
+      if (!weeklyReport.weekly_accomplishments) {
         setError('Please fill in all required fields');
         return;
       }
@@ -46,15 +71,17 @@ const WeeklyReportForm = ({ onClose, onSuccess }) => {
 
       onSuccess?.();
       onClose();
+      toast.success('Weekly report submitted successfully!');
     } catch (error) {
       console.error('Error submitting weekly report:', error);
       setError('Failed to submit weekly report. Please try again.');
+      toast.error('Failed to submit weekly report. Please try again.');
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100]">
+      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto ml-64">
         <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Weekly Report</h2>
         
         {error && (
@@ -84,28 +111,19 @@ const WeeklyReportForm = ({ onClose, onSuccess }) => {
             <input
               type="text"
               value={weeklyReport.full_name}
-              onChange={(e) => setWeeklyReport({ ...weeklyReport, full_name: e.target.value })}
-              className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              required
+              className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white bg-gray-100"
+              disabled
             />
           </div>
 
           <div>
             <label className="block text-gray-700 dark:text-gray-300 mb-2">Department *</label>
-            <select
+            <input
+              type="text"
               value={weeklyReport.department}
-              onChange={(e) => setWeeklyReport({ ...weeklyReport, department: e.target.value })}
-              className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              required
-            >
-              <option value="">Select Department</option>
-              <option value="Administration">Administration</option>
-              <option value="Data Analyst">Data Analyst</option>
-              <option value="Designer">Designer</option>
-              <option value="Developer">Developer</option>
-              <option value="Human Resource">Human Resource</option>
-              <option value="Training">Training</option>
-            </select>
+              className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white bg-gray-100"
+              disabled
+            />
           </div>
 
           <div>

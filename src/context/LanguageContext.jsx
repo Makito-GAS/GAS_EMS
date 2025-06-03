@@ -239,6 +239,70 @@ const translations = {
     totalTasks: 'Gesamtaufgaben',
     completedTasks: 'Abgeschlossene Aufgaben',
     pendingTasks: 'Ausstehende Aufgaben',
+  },
+  af: {
+    // Common
+    dashboard: 'Dashboard',
+    tasks: 'My Take',
+    schedule: 'Skedule',
+    profile: 'Profiel',
+    settings: 'Instellings',
+    signOut: 'Teken Uit',
+    
+    // Settings
+    customizeExperience: 'Pas jou ervaring aan',
+    theme: 'Tema',
+    darkMode: 'Donker Modus',
+    lightMode: 'Lig Modus',
+    notifications: 'Kennisgewings',
+    enabled: 'Geaktiveer',
+    disabled: 'Gedeaktiveer',
+    language: 'Taal',
+    selectLanguage: 'Kies jou voorkeurtaal',
+    english: 'Engels',
+    spanish: 'Spaans',
+    french: 'Frans',
+    german: 'Duits',
+    afrikaans: 'Afrikaans',
+    
+    // Tasks
+    addTask: 'Voeg Taak By',
+    taskTitle: 'Taak Titel',
+    taskDescription: 'Beskrywing',
+    dueDate: 'Vervaldatum',
+    priority: 'Prioriteit',
+    high: 'Hoog',
+    medium: 'Medium',
+    low: 'Laag',
+    status: 'Status',
+    pending: 'Hangende',
+    inProgress: 'In Uitvoering',
+    completed: 'Voltooi',
+    progress: 'Vordering',
+    delete: 'Verwyder',
+    
+    // Schedule
+    today: 'Vandag',
+    upcoming: 'Kommende',
+    noEvents: 'Geen geleenthede geskeduleer',
+    
+    // Profile
+    personalInfo: 'Persoonlike Inligting',
+    name: 'Naam',
+    email: 'E-pos',
+    role: 'Rol',
+    department: 'Departement',
+    saveChanges: 'Stoor Veranderinge',
+    
+    // Dashboard
+    welcomeBack: 'Welkom terug',
+    overview: 'Oorsig',
+    recentActivity: 'Onlangse Aktiwiteit',
+    taskOverview: 'Taak Oorsig',
+    upcomingSchedule: 'Kommende Skedule',
+    totalTasks: 'Totale Take',
+    completedTasks: 'Voltooide Take',
+    pendingTasks: 'Hangende Take',
   }
 };
 

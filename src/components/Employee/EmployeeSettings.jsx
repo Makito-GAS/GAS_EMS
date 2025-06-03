@@ -75,7 +75,7 @@ const EmployeeSettings = () => {
         />
       </Sidebar>
 
-      <div className="p-6 flex-1">
+      <div className="flex-1 ml-64 p-6">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">{t('settings')}</h1>
           <p className="text-gray-600 dark:text-gray-300 text-lg">{t('customizeExperience')}</p>
