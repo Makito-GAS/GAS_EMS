@@ -75,7 +75,7 @@ const CreateMember = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50  dark:bg-gray-900">
       <AdminSidebar>
         <AdminSidebarItem 
           icon={<FaHome className="w-6 h-6" />}
@@ -106,15 +106,15 @@ const CreateMember = () => {
 
       <div className="ml-64 flex-1 p-8 overflow-y-auto h-screen">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Add New Employee</h1>
-          <p className="text-gray-600">Create a new employee account</p>
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">Add New Employee</h1>
+          <p className="text-gray-600 dark:text-white">Create a new employee account</p>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6 max-w-2xl">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 max-w-2xl">
           <form onSubmit={handleCreateMember}>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-white mb-1">Name</label>
                 <input
                   type="text"
                   placeholder="Enter full name"
@@ -126,7 +126,7 @@ const CreateMember = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-white mb-1">Email</label>
                 <input
                   type="email"
                   placeholder="Enter email address"
@@ -138,7 +138,7 @@ const CreateMember = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-white mb-1">Role</label>
                 <select
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                   value={role}
@@ -155,7 +155,7 @@ const CreateMember = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-white mb-1">Status</label>
                 <select
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                   value={status}
@@ -172,7 +172,7 @@ const CreateMember = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-white mb-1">Gender</label>
                 <select
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                   value={gender}
@@ -187,7 +187,7 @@ const CreateMember = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-white mb-1">Department</label>
                 <select
                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                   value={department}
@@ -205,7 +205,7 @@ const CreateMember = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-white mb-1">Password</label>
                 <input
                   type="password"
                   placeholder="Enter password"
@@ -217,7 +217,7 @@ const CreateMember = () => {
               </div>
 
               {error && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                <div className="bg-red-100 border border-red-400 text-red-700 dark:bg-red-900 dark:text-red-400 px-4 py-3 rounded">
                   {error}
                 </div>
               )}
@@ -225,7 +225,7 @@ const CreateMember = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-blue-500 dark:bg-blue-600 text-white p-2 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? 'Creating...' : 'Create Employee'}
               </button>
