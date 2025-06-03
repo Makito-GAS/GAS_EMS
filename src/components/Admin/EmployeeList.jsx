@@ -191,7 +191,7 @@ const EmployeeList = () => {
   const uniqueDepartments = [...new Set(members.map(member => member.department).filter(Boolean))];
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50  dark:bg-gray-900">
       <AdminSidebar>
         <AdminSidebarItem 
           icon={<FaHome className="w-6 h-6" />}
@@ -222,8 +222,8 @@ const EmployeeList = () => {
 
       <div className="ml-64 flex-1 p-8 overflow-y-auto h-screen">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Employee Management</h1>
-          <p className="text-gray-600">View and manage all employees in the system</p>
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">Employee Management</h1>
+          <p className="text-gray-600 dark:text-white">View and manage all employees in the system</p>
         </div>
 
         {/* Search and Filter Section */}
@@ -300,69 +300,69 @@ const EmployeeList = () => {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+                <thead className="bg-gray-50 dark:bg-gray-700">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider">
                       Name
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider">
                       Email
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider">
                       Gender
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider">
                       Department
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider">
                       Role
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200">
                   {filteredMembers.map((member) => (
                     <tr key={member.id}>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-10 w-10">
-                            <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                              <span className="text-gray-500 font-medium">
+                            <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                              <span className="text-gray-500 dark:text-white font-medium">
                                 {member.name?.[0]?.toUpperCase() || '?'}
                               </span>
                             </div>
                           </div>
                           <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">
+                            <div className="text-sm font-medium text-gray-900 dark:text-white">
                               {member.name || 'N/A'}
                             </div>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{member.email}</div>
+                        <div className="text-sm text-gray-900 dark:text-white">{member.email}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
                           {member.gender ? member.gender.charAt(0).toUpperCase() + member.gender.slice(1) : 'N/A'}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{member.department || 'N/A'}</div>
+                        <div className="text-sm text-gray-900 dark:text-white">{member.department || 'N/A'}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                           member.role === 'admin' 
-                            ? 'bg-purple-100 text-purple-800' 
-                            : 'bg-green-100 text-green-800'
+                            ? 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200' 
+                            : 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
                         }`}>
                           {member.role || 'employee'}
                         </span>
@@ -401,12 +401,12 @@ const EmployeeList = () => {
         {/* Edit Modal */}
         {showEditModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
-              <h2 className="text-xl font-semibold text-gray-800 mb-4">Edit Employee Details</h2>
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-2xl">
+              <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Edit Employee Details</h2>
               <form onSubmit={handleEditSubmit}>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-white mb-1">Name</label>
                     <input
                       type="text"
                       name="name"
@@ -418,7 +418,7 @@ const EmployeeList = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-white mb-1">Email</label>
                     <input
                       type="email"
                       name="email"
@@ -430,7 +430,7 @@ const EmployeeList = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-white mb-1">Role</label>
                     <select
                       name="role"
                       value={editFormData.role}
@@ -448,7 +448,7 @@ const EmployeeList = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-white mb-1">Status</label>
                     <select
                       name="status"
                       value={editFormData.status}
@@ -466,7 +466,7 @@ const EmployeeList = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-white mb-1">Gender</label>
                     <select
                       name="gender"
                       value={editFormData.gender}
