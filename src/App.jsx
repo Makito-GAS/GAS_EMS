@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
+import { SettingsProvider } from './context/SettingsContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
 // Components
@@ -21,71 +22,74 @@ import PerformanceAnalytics from './components/Admin/PerformanceAnalytics';
 import Chat from './components/Chat/Chat';
 import AdminSettings from './components/Admin/AdminSettings';
 import EventSchedule from './components/Admin/EventSchedule';
+
 function App() {
   return (
     <Router>
       <AuthProvider>
-        <LanguageProvider>
-          <Toaster position="top-right" />
-          <div className="min-h-screen bg-gray-50">
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/" element={<AuthForm />} />
+        <SettingsProvider>
+          <LanguageProvider>
+            <Toaster position="top-right" />
+            <div className="min-h-screen bg-gray-50">
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/" element={<AuthForm />} />
 
-              {/* Protected Routes - Employee Access */}
-              <Route
-                path="/employee/*"
-                element={
-                  <ProtectedRoute allowedRoles={['employee']}>
-                    <Routes>
-                      <Route path="dashboard" element={<EmployeeDashboard />} />
-                      <Route path="tasks" element={<EmployeeTasks />} />
-                      <Route path="schedule" element={<EmployeeSchedule />} />
-                      <Route path="profile" element={<EmployeeProfile />} />
-                      <Route path="settings" element={<EmployeeSettings />} />
-                      <Route path="chat" element={<Chat />} />
-                      <Route path="*" element={<Navigate to="/employee/dashboard" replace />} />
-                    </Routes>
-                  </ProtectedRoute>
-                }
-              />
+                {/* Protected Routes - Employee Access */}
+                <Route
+                  path="/employee/*"
+                  element={
+                    <ProtectedRoute allowedRoles={['employee']}>
+                      <Routes>
+                        <Route path="dashboard" element={<EmployeeDashboard />} />
+                        <Route path="tasks" element={<EmployeeTasks />} />
+                        <Route path="schedule" element={<EmployeeSchedule />} />
+                        <Route path="profile" element={<EmployeeProfile />} />
+                        <Route path="settings" element={<EmployeeSettings />} />
+                        <Route path="chat" element={<Chat />} />
+                        <Route path="*" element={<Navigate to="/employee/dashboard" replace />} />
+                      </Routes>
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* Protected Routes - Admin Access */}
-              <Route
-                path="/admin/*"
-                element={
-                  <ProtectedRoute allowedRoles={['admin']}>
-                    <Routes>
-                      <Route path="dashboard" element={<AdminDashboard />} />
-                      <Route path="employees" element={<EmployeeList />} />
-                      <Route path="add-employee" element={<CreateMember />} />
-                      <Route path="reports" element={<PerformanceAnalytics />} />
-                      <Route path="daily-reports" element={<DailyReports />} />
-                      <Route path="leave-requests" element={<LeaveRequests />} />
-                      <Route path="chat" element={<Chat />} />
-                      <Route path="AdminSettings" element={<AdminSettings />} />
-                       <Route path="EventSchedule" element={<EventSchedule />} />
-                      <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
-                    </Routes>
-                  </ProtectedRoute>
-                }
-              />
+                {/* Protected Routes - Admin Access */}
+                <Route
+                  path="/admin/*"
+                  element={
+                    <ProtectedRoute allowedRoles={['admin']}>
+                      <Routes>
+                        <Route path="dashboard" element={<AdminDashboard />} />
+                        <Route path="employees" element={<EmployeeList />} />
+                        <Route path="add-employee" element={<CreateMember />} />
+                        <Route path="reports" element={<PerformanceAnalytics />} />
+                        <Route path="daily-reports" element={<DailyReports />} />
+                        <Route path="leave-requests" element={<LeaveRequests />} />
+                        <Route path="chat" element={<Chat />} />
+                        <Route path="AdminSettings" element={<AdminSettings />} />
+                        <Route path="EventSchedule" element={<EventSchedule />} />
+                        <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+                      </Routes>
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* Protected Routes - Common Access (for authenticated users) */}
-              <Route
-                path="/chat"
-                element={
-                  <ProtectedRoute>
-                    <Chat />
-                  </ProtectedRoute>
-                }
-              />
+                {/* Protected Routes - Common Access (for authenticated users) */}
+                <Route
+                  path="/chat"
+                  element={
+                    <ProtectedRoute>
+                      <Chat />
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* Catch all route - redirect to login */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </div>
-        </LanguageProvider>
+                {/* Catch all route - redirect to login */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </div>
+          </LanguageProvider>
+        </SettingsProvider>
       </AuthProvider>
     </Router>
   );
