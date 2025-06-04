@@ -206,17 +206,44 @@ const EmployeeDashboard = () => {
         .select('*')
         .eq('member_id', session?.user?.id)
         .eq('date', attendance.date)
-        .single();
+        .maybeSingle();
 
-      if (checkError && checkError.code !== 'PGRST116') {
+      if (checkError) {
         throw checkError;
       }
 
       if (existingAttendance) {
-        setAttendanceError('You have already checked in for this date');
-        return;
+        if (existingAttendance.check_in) {
+          setAttendanceError('You have already checked in for this date');
+          return;
+        } else {
+          // Update the existing record with check-in time and status
+          const { error: updateError } = await supabase
+            .from('attendance')
+            .update({
+              check_in: currentTime.toISOString(),
+              status: isLate ? 'late' : 'present'
+            })
+            .eq('id', existingAttendance.id);
+          if (updateError) throw updateError;
+
+          setAttendanceError('');
+          setAttendance(prev => ({
+            ...prev,
+            checkIn: currentTime.toLocaleTimeString()
+          }));
+          setShowAttendanceModal(false);
+
+          if (isLate) {
+            toast.error('You are late! Please check in before 9 AM next time.');
+          } else {
+            toast.success('Check-in successful!');
+          }
+          return;
+        }
       }
 
+      // No record exists, insert new
       const { error } = await supabase
         .from('attendance')
         .insert([
@@ -237,7 +264,6 @@ const EmployeeDashboard = () => {
       }));
       setShowAttendanceModal(false);
 
-      // Show warning toast if late
       if (isLate) {
         toast.error('You are late! Please check in before 9 AM next time.');
       } else {
