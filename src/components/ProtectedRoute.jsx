@@ -4,11 +4,22 @@ import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
 
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
-  const { session, userRole } = useAuth();
+  const { session, userRole, loading } = useAuth();
   const location = useLocation();
 
-  // If not authenticated, redirect to login
+  // Show loading state while checking authentication
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  // If not authenticated, store the current path and redirect to login
   if (!session) {
+    // Store the current path in localStorage
+    localStorage.setItem('redirectPath', location.pathname);
     toast.error('Please login to access this page');
     return <Navigate to="/" state={{ from: location }} replace />;
   }

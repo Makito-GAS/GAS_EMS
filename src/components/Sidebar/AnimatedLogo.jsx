@@ -1,7 +1,9 @@
 import React from 'react';
 import './AnimatedLogo.css';
 
-const AnimatedLogo = () => {
+const AnimatedLogo = ({ isVisible = true }) => {
+  if (!isVisible) return null;
+  
   return (
     <div className="animated-logo">
       <div className="gas-logo">

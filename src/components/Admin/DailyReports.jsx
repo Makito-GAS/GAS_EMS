@@ -31,7 +31,23 @@ const DailyReports = () => {
   const fetchAttendanceData = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      // First get all employees with role 'employee' from permission table
+      const { data: employees, error: employeesError } = await supabase
+        .from('member')
+        .select(`
+          id,
+          name,
+          department,
+          permission!inner (
+            role
+          )
+        `)
+        .eq('permission.role', 'employee');
+
+      if (employeesError) throw employeesError;
+
+      // Then get attendance records for the selected date
+      const { data: attendanceRecords, error: attendanceError } = await supabase
         .from('attendance')
         .select(`
           *,
@@ -43,8 +59,28 @@ const DailyReports = () => {
         .eq('date', dateFilter)
         .order('check_in', { ascending: true });
 
-      if (error) throw error;
-      setAttendanceData(data);
+      if (attendanceError) throw attendanceError;
+
+      // Create a map of employee IDs to their attendance records
+      const attendanceMap = new Map(
+        attendanceRecords.map(record => [record.member_id, record])
+      );
+
+      // Combine employee data with attendance records
+      const combinedData = employees.map(employee => {
+        const attendanceRecord = attendanceMap.get(employee.id);
+        return attendanceRecord || {
+          member_id: employee.id,
+          date: dateFilter,
+          status: 'absent',
+          member: {
+            name: employee.name,
+            department: employee.department
+          }
+        };
+      });
+
+      setAttendanceData(combinedData);
     } catch (error) {
       console.error('Error fetching attendance data:', error);
       setError(error.message);

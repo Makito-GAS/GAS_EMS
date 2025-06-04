@@ -26,10 +26,10 @@ const AdminSidebar = ({ children }) => {
   };
 
   return (
-    <aside className="fixed top-0 left-0 h-full w-64 bg-gray-800 shadow-lg z-50">
+    <aside className="fixed top-0 left-0 h-full  bg-gray-800 shadow-lg z-50">
       <nav className={`h-full flex flex-col ${expanded ? 'w-64' : 'w-20'} transition-all duration-300 ease-in-out`}>
         <div className="p-4 pb-2 flex justify-between items-center">
-          <AnimatedLogo className={`overflow-hidden transition-all duration-300 ${expanded ? "w-32" : "w-0"}`} />
+          <AnimatedLogo isVisible={expanded} />
           <button 
             className="p-1.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-white"
             onClick={toggleSidebar}

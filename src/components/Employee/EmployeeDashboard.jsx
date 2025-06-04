@@ -6,6 +6,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import Sidebar, { SidebarItem } from '../Sidebar/Sidebar'
 import { useLanguage } from '../../context/LanguageContext'
 import supabase from '../../../supabase-client'
+import { toast } from 'react-hot-toast'
 
 const EmployeeDashboard = () => {
   const { session, signOut } = useAuth();
@@ -94,7 +95,7 @@ const EmployeeDashboard = () => {
 
       // Get leave policy
       const { data: newPolicy, error: createError } = await supabase
-        .from('leave_policies')
+        .from('leave_policy')
         .upsert([
           {
             member_id: session?.user?.id,
@@ -195,12 +196,9 @@ const EmployeeDashboard = () => {
   const handleCheckIn = async () => {
     const currentTime = new Date();
     const currentHour = currentTime.getHours();
+    const currentMinutes = currentTime.getMinutes();
+    const isLate = currentHour > 9 || (currentHour === 9 && currentMinutes > 0);
     
-    if (currentHour > 9) {
-      setAttendanceError('Check-in is only allowed before 9 AM');
-      return;
-    }
-
     try {
       // First check if attendance record already exists for today
       const { data: existingAttendance, error: checkError } = await supabase
@@ -226,7 +224,7 @@ const EmployeeDashboard = () => {
             member_id: session?.user?.id,
             date: attendance.date,
             check_in: currentTime.toISOString(),
-            status: 'present'
+            status: isLate ? 'late' : 'present'
           }
         ]);
 
@@ -238,6 +236,13 @@ const EmployeeDashboard = () => {
         checkIn: currentTime.toLocaleTimeString()
       }));
       setShowAttendanceModal(false);
+
+      // Show warning toast if late
+      if (isLate) {
+        toast.error('You are late! Please check in before 9 AM next time.');
+      } else {
+        toast.success('Check-in successful!');
+      }
     } catch (error) {
       console.error('Error marking attendance:', error);
       setAttendanceError('Failed to mark attendance. Please try again.');
@@ -322,7 +327,7 @@ const EmployeeDashboard = () => {
         />
       </Sidebar>
 
-      <div className="flex-1 p-8">
+      <div className="flex-1 ml-64 p-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">Welcome Back</h1>
           <p className="text-gray-600 dark:text-gray-300">Overview</p>

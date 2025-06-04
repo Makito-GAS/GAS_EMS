@@ -250,7 +250,7 @@ const EventSchedule = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
       <AdminSidebar>
         <AdminSidebarItem 
           icon={<FaHome className="w-6 h-6" />}
@@ -282,8 +282,8 @@ const EventSchedule = () => {
       <div className="ml-64 flex-1 p-8 overflow-y-auto h-screen">
         <div className="mb-8 flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">Event Schedule</h1>
-            <p className="text-gray-600">Manage company events and schedules</p>
+            <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">Event Schedule</h1>
+            <p className="text-gray-600 dark:text-white">Manage company events and schedules</p>
           </div>
           <button
             onClick={() => setShowAddModal(true)}
@@ -305,32 +305,32 @@ const EventSchedule = () => {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-700">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider">
                       Event
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider">
                       Date & Time
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider">
                       Location
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider">
                       Type
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-white uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                   {events.length === 0 ? (
                     <tr>
-                      <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
+                      <td colSpan="5" className="px-6 py-4 text-center text-gray-500 dark:text-white">
                         No events scheduled
                       </td>
                     </tr>
@@ -338,21 +338,21 @@ const EventSchedule = () => {
                     events.map((event) => (
                       <tr key={event.id}>
                         <td className="px-6 py-4">
-                          <div className="text-sm font-medium text-gray-900">{event.title}</div>
-                          <div className="text-sm text-gray-500">{event.description}</div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">{event.title}</div>
+                          <div className="text-sm text-gray-500 dark:text-white">{event.description}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
+                          <div className="text-sm text-gray-900 dark:text-white">
                             {formatDate(event.start_time)}
                           </div>
-                          <div className="text-sm text-gray-500">
+                          <div className="text-sm text-gray-500 dark:text-white">
                             to {formatDate(event.end_time)}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{event.location || 'Not specified'}</div>
+                          <div className="text-sm text-gray-900 dark:text-white">{event.location || 'Not specified'}</div>
                           {event.location && event.location !== 'Not specified' && (
-                            <p className="text-sm text-gray-600">📍 {event.location}</p>
+                            <p className="text-sm text-gray-600 dark:text-white">📍 {event.location}</p>
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">

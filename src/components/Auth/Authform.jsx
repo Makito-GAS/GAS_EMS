@@ -33,14 +33,24 @@ const Authform = () => {
         const result = await signIn(email, password);
         console.log('Sign in result:', result);
         if (result.success) {
-          // Navigate based on role
-          if (result.role === 'admin') {
-            navigate('/admin/dashboard');
-          } else if (result.role === 'employee') {
-            navigate('/employee/dashboard');
+          // Get the stored redirect path
+          const redirectPath = localStorage.getItem('redirectPath');
+          // Clear the stored path
+          localStorage.removeItem('redirectPath');
+          
+          // If there's a stored path, redirect to it
+          if (redirectPath) {
+            navigate(redirectPath);
           } else {
-            console.error('Invalid role:', result.role);
-            setError("Invalid user role");
+            // Otherwise, navigate based on role
+            if (result.role === 'admin') {
+              navigate('/admin/dashboard');
+            } else if (result.role === 'employee') {
+              navigate('/employee/dashboard');
+            } else {
+              console.error('Invalid role:', result.role);
+              setError("Invalid user role");
+            }
           }
         } else {
           console.error('Sign in failed:', result.error);
@@ -64,7 +74,7 @@ const Authform = () => {
           <div className='flex flex-col py-4'>
           <input
            type="email" 
-           placeholder=" gas Email "
+           placeholder="Email "
           className='p-3 mt-6'
            onChange={(e)=>setEmail(e.target.value)}
           />

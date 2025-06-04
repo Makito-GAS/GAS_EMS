@@ -1,293 +1,235 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useSettings } from '../../context/SettingsContext';
 import AdminSidebar, { AdminSidebarItem } from './AdminSidebar';
-import { FaHome, FaUsers, FaUserPlus, FaChartBar, FaCog, FaBell, FaMoon, FaSun, FaLanguage } from 'react-icons/fa';
+import { FaHome, FaUsers, FaUserPlus, FaChartBar, FaCog, FaBell, FaMoon, FaSun, FaLanguage, FaDesktop, FaTabletAlt, FaMobile, FaFont, FaPalette, FaUndo } from 'react-icons/fa';
+import { toast } from 'react-hot-toast';
 
 const AdminSettings = () => {
   const { session } = useAuth();
-  const { t } = useLanguage();
-  const [settings, setSettings] = useState({
-    notifications: {
-      emailNotifications: true,
-      pushNotifications: true,
-      taskReminders: true,
-      leaveRequestAlerts: true
-    },
-    appearance: {
-      darkMode: false,
-      compactView: false,
-      showAvatars: true
-    },
-    language: 'en',
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    dateFormat: 'MM/DD/YYYY',
-    timeFormat: '12h'
-  });
+  const { t, language, setLanguage } = useLanguage();
+  const { settings, updateSettings, toggleSetting, resetSettings } = useSettings();
+  const [darkMode, setDarkMode] = useState(settings.appearance.theme === 'dark');
 
-  // Load settings from localStorage on component mount
   useEffect(() => {
-    const savedSettings = localStorage.getItem('adminSettings');
-    if (savedSettings) {
-      setSettings(JSON.parse(savedSettings));
+    // Check if user has a saved theme preference
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      setDarkMode(savedTheme === 'dark');
+      document.documentElement.classList.toggle('dark', savedTheme === 'dark');
     }
   }, []);
 
-  // Save settings to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('adminSettings', JSON.stringify(settings));
-  }, [settings]);
-
-  const handleNotificationChange = (setting) => {
-    setSettings(prev => ({
-      ...prev,
-      notifications: {
-        ...prev.notifications,
-        [setting]: !prev.notifications[setting]
-      }
-    }));
+  const handleAppearanceChange = (setting, value) => {
+    updateSettings('appearance', setting, value);
+    if (setting === 'theme') {
+      setDarkMode(value === 'dark');
+      document.documentElement.classList.toggle('dark', value === 'dark');
+      localStorage.setItem('theme', value);
+    }
+    toast.success(t('appearanceSettingsUpdated'));
   };
 
-  const handleAppearanceChange = (setting) => {
-    setSettings(prev => ({
-      ...prev,
-      appearance: {
-        ...prev.appearance,
-        [setting]: !prev.appearance[setting]
-      }
-    }));
+  const handleNotificationChange = (setting) => {
+    toggleSetting('notifications', setting);
+    toast.success(t('notificationSettingsUpdated'));
+  };
+
+  const handleDisplayChange = (setting) => {
+    toggleSetting('display', setting);
+    toast.success(t('displaySettingsUpdated'));
   };
 
   const handleLanguageChange = (e) => {
-    setSettings(prev => ({
-      ...prev,
-      language: e.target.value
-    }));
-  };
-
-  const handleTimezoneChange = (e) => {
-    setSettings(prev => ({
-      ...prev,
-      timezone: e.target.value
-    }));
+    const newLanguage = e.target.value;
+    // Update the language context first
+    setLanguage(newLanguage);
+    // Then update the settings
+    updateSettings('language', 'language', newLanguage);
+    toast.success(t('languageSettingsUpdated'));
   };
 
   const handleDateFormatChange = (e) => {
-    setSettings(prev => ({
-      ...prev,
-      dateFormat: e.target.value
-    }));
+    updateSettings('dateFormat', 'dateFormat', e.target.value);
+    toast.success(t('dateFormatUpdated'));
   };
 
   const handleTimeFormatChange = (e) => {
-    setSettings(prev => ({
-      ...prev,
-      timeFormat: e.target.value
-    }));
+    updateSettings('timeFormat', 'timeFormat', e.target.value);
+    toast.success(t('timeFormatUpdated'));
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
       <AdminSidebar>
         <AdminSidebarItem 
           icon={<FaHome className="w-6 h-6" />}
-          text="Dashboard"
+          text={t('dashboard')}
           path="/admin/dashboard"
         />
         <AdminSidebarItem 
           icon={<FaUsers className="w-6 h-6" />}
-          text="Manage Employees"
+          text={t('manageEmployees')}
           path="/admin/employees"
         />
         <AdminSidebarItem 
           icon={<FaUserPlus className="w-6 h-6" />}
-          text="Add Employee"
+          text={t('addEmployee')}
           path="/admin/add-employee"
         />
         <AdminSidebarItem 
           icon={<FaChartBar className="w-6 h-6" />}
-          text="Reports"
+          text={t('reports')}
           path="/admin/reports"
         />
         <AdminSidebarItem 
           icon={<FaCog className="w-6 h-6" />}
-          text="Settings"
+          text={t('settings')}
           path="/admin/settings"
         />
       </AdminSidebar>
 
-      <div className="ml-64 flex-1 p-8 overflow-y-auto h-screen">
+      <div className="ml-64 p-6 flex-1">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Settings</h1>
-          <p className="text-gray-600">Customize your admin dashboard preferences</p>
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">{t('settings')}</h1>
+          <p className="text-gray-600 dark:text-gray-300 text-lg">{t('customizeAdminExperience')}</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Notifications Settings */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center mb-4">
-              <FaBell className="w-6 h-6 text-blue-500 mr-2" />
-              <h2 className="text-xl font-semibold text-gray-800">Notifications</h2>
+        <div className="space-y-6">
+          {/* Theme Settings */}
+          <div className="card rounded-lg p-6 dark:bg-gray-800">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                {darkMode ? (
+                  <FaMoon className="w-6 h-6 text-gray-600 dark:text-gray-300" />
+                ) : (
+                  <FaSun className="w-6 h-6 text-gray-600 dark:text-gray-300" />
+                )}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white">{t('theme')}</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                    {darkMode ? t('darkMode') : t('lightMode')}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => handleAppearanceChange('theme', darkMode ? 'light' : 'dark')}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                  darkMode ? 'bg-blue-600' : 'bg-gray-200'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    darkMode ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
             </div>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <label className="text-gray-700">Email Notifications</label>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={settings.notifications.emailNotifications}
-                    onChange={() => handleNotificationChange('emailNotifications')}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                </label>
+          </div>
+
+          {/* Notification Settings */}
+          <div className="card rounded-lg p-6 dark:bg-gray-800">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <FaBell className="w-6 h-6 text-gray-600 dark:text-gray-300" />
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white">{t('notifications')}</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                    {settings.notifications.enabled ? t('enabled') : t('disabled')}
+                  </p>
+                </div>
               </div>
-              <div className="flex items-center justify-between">
-                <label className="text-gray-700">Push Notifications</label>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={settings.notifications.pushNotifications}
-                    onChange={() => handleNotificationChange('pushNotifications')}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                </label>
+              <button
+                onClick={() => handleNotificationChange('enabled')}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                  settings.notifications.enabled ? 'bg-blue-600' : 'bg-gray-200'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    settings.notifications.enabled ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+
+          {/* Language Settings */}
+          <div className="card rounded-lg p-6 dark:bg-gray-800">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <FaLanguage className="w-6 h-6 text-gray-600 dark:text-gray-300" />
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white">{t('language')}</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">{t('selectLanguage')}</p>
+                </div>
               </div>
-              <div className="flex items-center justify-between">
-                <label className="text-gray-700">Task Reminders</label>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={settings.notifications.taskReminders}
-                    onChange={() => handleNotificationChange('taskReminders')}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                </label>
+              <select
+                value={language}
+                onChange={handleLanguageChange}
+                className="px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white"
+              >
+                <option value="en">{t('english')}</option>
+                <option value="es">{t('spanish')}</option>
+                <option value="fr">{t('french')}</option>
+                <option value="de">{t('german')}</option>
+                <option value="af">{t('afrikaans')}</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Display Settings */}
+          <div className="card rounded-lg p-6 dark:bg-gray-800">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <FaDesktop className="w-6 h-6 text-gray-600 dark:text-gray-300" />
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white">{t('display')}</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">{t('customizeDisplaySettings')}</p>
+                </div>
               </div>
-              <div className="flex items-center justify-between">
-                <label className="text-gray-700">Leave Request Alerts</label>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={settings.notifications.leaveRequestAlerts}
-                    onChange={() => handleNotificationChange('leaveRequestAlerts')}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                </label>
+              <div className="flex space-x-4">
+                <button
+                  onClick={() => handleDisplayChange('compactMode')}
+                  className={`px-3 py-1 rounded ${
+                    settings.display.compactMode
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                  }`}
+                >
+                  {t('compact')}
+                </button>
+                <button
+                  onClick={() => handleDisplayChange('showSidebar')}
+                  className={`px-3 py-1 rounded ${
+                    settings.display.showSidebar
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                  }`}
+                >
+                  {t('sidebar')}
+                </button>
               </div>
             </div>
           </div>
 
-          {/* Appearance Settings */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center mb-4">
-              {settings.appearance.darkMode ? (
-                <FaMoon className="w-6 h-6 text-blue-500 mr-2" />
-              ) : (
-                <FaSun className="w-6 h-6 text-blue-500 mr-2" />
-              )}
-              <h2 className="text-xl font-semibold text-gray-800">Appearance</h2>
-            </div>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <label className="text-gray-700">Dark Mode</label>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={settings.appearance.darkMode}
-                    onChange={() => handleAppearanceChange('darkMode')}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                </label>
+          {/* Reset Settings */}
+          <div className="card rounded-lg p-6 dark:bg-gray-800">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <FaUndo className="w-6 h-6 text-gray-600 dark:text-gray-300" />
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white">{t('resetSettings')}</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">{t('restoreDefaultSettings')}</p>
+                </div>
               </div>
-              <div className="flex items-center justify-between">
-                <label className="text-gray-700">Compact View</label>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={settings.appearance.compactView}
-                    onChange={() => handleAppearanceChange('compactView')}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                </label>
-              </div>
-              <div className="flex items-center justify-between">
-                <label className="text-gray-700">Show Avatars</label>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={settings.appearance.showAvatars}
-                    onChange={() => handleAppearanceChange('showAvatars')}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                </label>
-              </div>
-            </div>
-          </div>
-
-          {/* Language and Regional Settings */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center mb-4">
-              <FaLanguage className="w-6 h-6 text-blue-500 mr-2" />
-              <h2 className="text-xl font-semibold text-gray-800">Language & Regional</h2>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Language</label>
-                <select
-                  value={settings.language}
-                  onChange={handleLanguageChange}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="en">English</option>
-                  <option value="es">Spanish</option>
-                  <option value="fr">French</option>
-                  <option value="de">German</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Timezone</label>
-                <select
-                  value={settings.timezone}
-                  onChange={handleTimezoneChange}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="UTC">UTC</option>
-                  <option value="America/New_York">Eastern Time</option>
-                  <option value="America/Chicago">Central Time</option>
-                  <option value="America/Denver">Mountain Time</option>
-                  <option value="America/Los_Angeles">Pacific Time</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Date Format</label>
-                <select
-                  value={settings.dateFormat}
-                  onChange={handleDateFormatChange}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-                  <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                  <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Time Format</label>
-                <select
-                  value={settings.timeFormat}
-                  onChange={handleTimeFormatChange}
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="12h">12-hour</option>
-                  <option value="24h">24-hour</option>
-                </select>
-              </div>
+              <button
+                onClick={resetSettings}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                {t('reset')}
+              </button>
             </div>
           </div>
         </div>

@@ -24,8 +24,7 @@ const EmployeeTasks = () => {
     dueDate: '',
     priority: 'medium',
     status: 'pending',
-    progress: 0,
-    assigned_to: ''
+    progress: 0
   });
   const [dailyReport, setDailyReport] = useState({
     task_status: 'On Track',
@@ -43,6 +42,7 @@ const EmployeeTasks = () => {
   useEffect(() => {
     fetchTasks();
     fetchEmployees();
+    fetchMemberDetails();
   }, []);
 
   const fetchTasks = async () => {
@@ -83,13 +83,41 @@ const EmployeeTasks = () => {
     }
   };
 
+  const fetchMemberDetails = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('member')
+        .select('name, department')
+        .eq('id', session.user.id)
+        .single();
+
+      if (error) throw error;
+
+      setDailyReport(prev => ({
+        ...prev,
+        full_name: data.name,
+        department: data.department
+      }));
+    } catch (error) {
+      console.error('Error fetching member details:', error);
+    }
+  };
+
   const handleAddTask = async () => {
     try {
       setError(null);
       
-      // Validate required fields
-      if (!newTask.title || !newTask.project || !newTask.dueDate) {
-        toast.error('Please fill in all required fields');
+      // Validate required fields with specific messages
+      if (!newTask.title) {
+        toast.error('Please enter a task title');
+        return;
+      }
+      if (!newTask.project) {
+        toast.error('Please enter a project name');
+        return;
+      }
+      if (!newTask.dueDate) {
+        toast.error('Please select a due date');
         return;
       }
 
@@ -113,7 +141,7 @@ const EmployeeTasks = () => {
             status: newTask.status,
             progress: newTask.progress,
             created_by: session.user.id,
-            assigned_to: newTask.assigned_to || null
+            assigned_to: null
           }
         ])
         .select();
@@ -134,8 +162,7 @@ const EmployeeTasks = () => {
         dueDate: '',
         priority: 'medium',
         status: 'pending',
-        progress: 0,
-        assigned_to: ''
+        progress: 0
       });
       setShowModal(false);
       toast.success('Task created successfully');
@@ -302,9 +329,11 @@ const EmployeeTasks = () => {
         help_description: '',
         additional_notes: ''
       });
+      toast.success('Daily report submitted successfully!');
     } catch (error) {
       console.error('Error submitting daily report:', error);
       setError('Failed to submit daily report. Please try again.');
+      toast.error('Failed to submit daily report. Please try again.');
     }
   };
 
@@ -338,7 +367,7 @@ const EmployeeTasks = () => {
         />
       </Sidebar>
 
-      <div className="flex-1 p-8">
+      <div className="flex-1 ml-64 p-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800 dark:text-white">{t('tasks')}</h1>
           <div className="flex space-x-4">
@@ -504,28 +533,19 @@ const EmployeeTasks = () => {
                   <input
                     type="text"
                     value={dailyReport.full_name}
-                    onChange={(e) => setDailyReport({ ...dailyReport, full_name: e.target.value })}
-                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    required
+                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white bg-gray-100"
+                    disabled
                   />
                 </div>
 
                 <div>
                   <label className="block text-gray-700 dark:text-gray-300 mb-2">Department *</label>
-                  <select
+                  <input
+                    type="text"
                     value={dailyReport.department}
-                    onChange={(e) => setDailyReport({ ...dailyReport, department: e.target.value })}
-                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    required
-                  >
-                    <option value="">Select Department</option>
-                    <option value="Administration">Administration</option>
-                    <option value="Data Analyst">Data Analyst</option>
-                    <option value="Developer">Developer</option>
-                    <option value="Designer">Designer</option>
-                    <option value="Human Resource">Human Resource</option>
-                    <option value="Training">Training</option>
-                  </select>
+                    className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white bg-gray-100"
+                    disabled
+                  />
                 </div>
 
                 <div>
@@ -717,23 +737,6 @@ const EmployeeTasks = () => {
                     <option value="low">{t('low')}</option>
                     <option value="medium">{t('medium')}</option>
                     <option value="high">{t('high')}</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    {t('assignTo')}
-                  </label>
-                  <select
-                    value={newTask.assigned_to}
-                    onChange={(e) => setNewTask({ ...newTask, assigned_to: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  >
-                    <option value="">{t('selectAssignee')}</option>
-                    {employees.map((employee) => (
-                      <option key={employee.id} value={employee.id}>
-                        {employee.name} ({employee.email})
-                      </option>
-                    ))}
                   </select>
                 </div>
                 <div className="flex justify-end space-x-2">

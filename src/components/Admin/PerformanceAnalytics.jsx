@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import AdminSidebar, { AdminSidebarItem } from './AdminSidebar';
-import { FaHome, FaUsers, FaUserPlus, FaChartBar, FaCog, FaFileAlt } from 'react-icons/fa';
+import { FaHome, FaUsers, FaUserPlus, FaChartBar, FaCog, FaFileAlt, FaFileExcel, FaEye } from 'react-icons/fa';
 import supabase from '../../../supabase-client';
 import {
   Chart as ChartJS,
@@ -13,8 +13,12 @@ import {
   Tooltip,
   Legend,
   ArcElement,
+  PointElement,
+  LineElement,
 } from 'chart.js';
-import { Bar, Pie } from 'react-chartjs-2';
+import { Bar, Pie, Line } from 'react-chartjs-2';
+import * as XLSX from 'xlsx';
+import { toast } from 'react-hot-toast';
 
 ChartJS.register(
   CategoryScale,
@@ -23,7 +27,9 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
-  ArcElement
+  ArcElement,
+  PointElement,
+  LineElement
 );
 
 const PerformanceAnalytics = () => {
@@ -35,6 +41,10 @@ const PerformanceAnalytics = () => {
   const [departmentData, setDepartmentData] = useState(null);
   const [employeeGrowth, setEmployeeGrowth] = useState([]);
   const [weeklyReportData, setWeeklyReportData] = useState(null);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [showEmployeeModal, setShowEmployeeModal] = useState(false);
+  const [employeeDetails, setEmployeeDetails] = useState(null);
+  const [employeeLoading, setEmployeeLoading] = useState(false);
 
   useEffect(() => {
     fetchAnalyticsData();
@@ -216,6 +226,7 @@ const PerformanceAnalytics = () => {
       const employeeId = report.member_id;
       if (!employeeStats[employeeId]) {
         employeeStats[employeeId] = {
+          member_id: employeeId,
           name: report.full_name,
           department: report.department,
           totalReports: 0,
@@ -291,6 +302,362 @@ const PerformanceAnalytics = () => {
     };
   };
 
+  const exportToExcel = () => {
+    try {
+      // Create workbook
+      const wb = XLSX.utils.book_new();
+      
+      // Export Employee Growth Data
+      const employeeGrowthData = employeeGrowth.map(emp => ({
+        'Employee Name': emp.name,
+        'Department': emp.department,
+        'Performance Score': `${emp.performanceScore}%`,
+        'On Track Tasks': emp.onTrackCount,
+        'Roadblocks': emp.roadblocksCount,
+        'Help Requests': emp.helpRequests,
+        'Total Reports': emp.totalReports
+      }));
+      
+      const wsEmployeeGrowth = XLSX.utils.json_to_sheet(employeeGrowthData);
+      XLSX.utils.book_append_sheet(wb, wsEmployeeGrowth, 'Employee Growth');
+
+      // Export Department Performance Data
+      const deptPerformanceData = departmentData.labels.map((dept, index) => ({
+        'Department': dept,
+        'On Track Tasks': departmentData.datasets[0].data[index],
+        'At Risk Tasks': departmentData.datasets[1].data[index]
+      }));
+      
+      const wsDepartment = XLSX.utils.json_to_sheet(deptPerformanceData);
+      XLSX.utils.book_append_sheet(wb, wsDepartment, 'Department Performance');
+
+      // Export Task Status Data
+      const taskStatusData = weeklyData.labels.map((status, index) => ({
+        'Status': status,
+        'Count': weeklyData.datasets[0].data[index]
+      }));
+      
+      const wsTaskStatus = XLSX.utils.json_to_sheet(taskStatusData);
+      XLSX.utils.book_append_sheet(wb, wsTaskStatus, 'Task Status');
+
+      // Export Weekly Hours Data if available
+      if (weeklyReportData?.hours) {
+        const hoursData = weeklyReportData.hours.labels.map((name, index) => ({
+          'Employee': name,
+          'Planned Hours': weeklyReportData.hours.datasets[0].data[index],
+          'Actual Hours': weeklyReportData.hours.datasets[1].data[index]
+        }));
+        
+        const wsHours = XLSX.utils.json_to_sheet(hoursData);
+        XLSX.utils.book_append_sheet(wb, wsHours, 'Weekly Hours');
+      }
+
+      // Generate Excel file
+      const fileName = `performance_analytics_${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+      
+      toast.success('Performance data exported successfully!');
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      toast.error('Failed to export performance data');
+    }
+  };
+
+  const fetchEmployeeDetails = async (employeeId) => {
+    try {
+      setEmployeeLoading(true);
+      
+      if (!employeeId) {
+        throw new Error('Employee ID is required');
+      }
+
+      // Get the start of the last 4 weeks
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 28);
+
+      // Fetch tasks
+      const { data: tasks, error: tasksError } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('assigned_to', employeeId)
+        .gte('created_at', startDate.toISOString());
+
+      if (tasksError) {
+        console.error('Error fetching tasks:', tasksError);
+        throw new Error('Failed to fetch tasks');
+      }
+
+      // Fetch daily reports
+      const { data: dailyReports, error: dailyReportsError } = await supabase
+        .from('daily_reports')
+        .select('*')
+        .eq('member_id', employeeId)
+        .gte('created_at', startDate.toISOString());
+
+      if (dailyReportsError) {
+        console.error('Error fetching daily reports:', dailyReportsError);
+        throw new Error('Failed to fetch daily reports');
+      }
+
+      // Fetch weekly reports
+      const { data: weeklyReports, error: weeklyReportsError } = await supabase
+        .from('weekly_reports')
+        .select('*')
+        .eq('member_id', employeeId)
+        .gte('created_at', startDate.toISOString());
+
+      if (weeklyReportsError) {
+        console.error('Error fetching weekly reports:', weeklyReportsError);
+        throw new Error('Failed to fetch weekly reports');
+      }
+
+      // Fetch attendance
+      const { data: attendance, error: attendanceError } = await supabase
+        .from('attendance')
+        .select('*')
+        .eq('member_id', employeeId)
+        .gte('date', startDate.toISOString());
+
+      if (attendanceError) {
+        console.error('Error fetching attendance:', attendanceError);
+        throw new Error('Failed to fetch attendance records');
+      }
+
+      // Process data for charts
+      const taskCompletionData = processTaskCompletionData(tasks || []);
+      const reportSubmissionData = processReportSubmissionData(dailyReports || [], weeklyReports || []);
+      const attendanceData = processAttendanceData(attendance || []);
+
+      setEmployeeDetails({
+        taskCompletion: taskCompletionData,
+        reportSubmission: reportSubmissionData,
+        attendance: attendanceData
+      });
+    } catch (error) {
+      console.error('Error fetching employee details:', error);
+      toast.error(error.message || 'Failed to fetch employee details');
+      setEmployeeDetails(null);
+    } finally {
+      setEmployeeLoading(false);
+    }
+  };
+
+  const processTaskCompletionData = (tasks) => {
+    const weeklyData = {};
+    const last4Weeks = Array.from({ length: 4 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - (i * 7));
+      return date.toISOString().split('T')[0];
+    }).reverse();
+
+    last4Weeks.forEach(week => {
+      weeklyData[week] = {
+        completed: 0,
+        total: 0
+      };
+    });
+
+    tasks.forEach(task => {
+      const taskDate = new Date(task.created_at).toISOString().split('T')[0];
+      const weekStart = last4Weeks.find(week => taskDate >= week);
+      
+      if (weekStart) {
+        weeklyData[weekStart].total++;
+        if (task.status === 'completed') {
+          weeklyData[weekStart].completed++;
+        }
+      }
+    });
+
+    return {
+      labels: last4Weeks.map(date => new Date(date).toLocaleDateString()),
+      datasets: [
+        {
+          label: 'Completed Tasks',
+          data: last4Weeks.map(week => weeklyData[week].completed),
+          backgroundColor: 'rgba(34, 197, 94, 0.6)',
+        },
+        {
+          label: 'Total Tasks',
+          data: last4Weeks.map(week => weeklyData[week].total),
+          backgroundColor: 'rgba(59, 130, 246, 0.6)',
+        }
+      ]
+    };
+  };
+
+  const processReportSubmissionData = (dailyReports, weeklyReports) => {
+    const last4Weeks = Array.from({ length: 4 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - (i * 7));
+      return date.toISOString().split('T')[0];
+    }).reverse();
+
+    const dailyData = last4Weeks.map(week => {
+      const weekEnd = new Date(week);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      return dailyReports.filter(report => {
+        const reportDate = new Date(report.created_at);
+        return reportDate >= new Date(week) && reportDate <= weekEnd;
+      }).length;
+    });
+
+    const weeklyData = last4Weeks.map(week => {
+      const weekEnd = new Date(week);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      return weeklyReports.filter(report => {
+        const reportDate = new Date(report.created_at);
+        return reportDate >= new Date(week) && reportDate <= weekEnd;
+      }).length;
+    });
+
+    return {
+      labels: last4Weeks.map(date => new Date(date).toLocaleDateString()),
+      datasets: [
+        {
+          label: 'Daily Reports',
+          data: dailyData,
+          backgroundColor: 'rgba(34, 197, 94, 0.6)',
+        },
+        {
+          label: 'Weekly Reports',
+          data: weeklyData,
+          backgroundColor: 'rgba(59, 130, 246, 0.6)',
+        }
+      ]
+    };
+  };
+
+  const processAttendanceData = (attendance) => {
+    const last4Weeks = Array.from({ length: 4 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - (i * 7));
+      return date.toISOString().split('T')[0];
+    }).reverse();
+
+    const weeklyData = last4Weeks.map(week => {
+      const weekEnd = new Date(week);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      const weekAttendance = attendance.filter(record => {
+        const recordDate = new Date(record.date);
+        return recordDate >= new Date(week) && recordDate <= weekEnd;
+      });
+
+      return {
+        present: weekAttendance.filter(record => record.status === 'present').length,
+        late: weekAttendance.filter(record => record.status === 'late').length,
+        absent: weekAttendance.filter(record => record.status === 'absent').length
+      };
+    });
+
+    return {
+      labels: last4Weeks.map(date => new Date(date).toLocaleDateString()),
+      datasets: [
+        {
+          label: 'Present',
+          data: weeklyData.map(week => week.present),
+          backgroundColor: 'rgba(34, 197, 94, 0.6)',
+        },
+        {
+          label: 'Late',
+          data: weeklyData.map(week => week.late),
+          backgroundColor: 'rgba(234, 179, 8, 0.6)',
+        },
+        {
+          label: 'Absent',
+          data: weeklyData.map(week => week.absent),
+          backgroundColor: 'rgba(239, 68, 68, 0.6)',
+        }
+      ]
+    };
+  };
+
+  const handleViewEmployee = async (employee) => {
+    try {
+      if (!employee?.member_id) {
+        throw new Error('Invalid employee data');
+      }
+      setSelectedEmployee(employee);
+      setShowEmployeeModal(true);
+      await fetchEmployeeDetails(employee.member_id);
+    } catch (error) {
+      console.error('Error viewing employee:', error);
+      toast.error('Failed to load employee details');
+      setShowEmployeeModal(false);
+    }
+  };
+
+  const exportEmployeeDetails = () => {
+    try {
+      if (!selectedEmployee || !employeeDetails) {
+        throw new Error('No employee data available to export');
+      }
+
+      // Create workbook
+      const wb = XLSX.utils.book_new();
+      
+      // Export Task Completion Data
+      const taskCompletionData = employeeDetails.taskCompletion.labels.map((week, index) => {
+        const completedTasks = employeeDetails.taskCompletion.datasets[0].data[index] || 0;
+        const totalTasks = employeeDetails.taskCompletion.datasets[1].data[index] || 0;
+        const completionRate = totalTasks > 0 
+          ? Math.round((completedTasks / totalTasks) * 100)
+          : 0;
+
+        return {
+          'Week': week,
+          'Completed Tasks': completedTasks,
+          'Total Tasks': totalTasks,
+          'Completion Rate': `${completionRate}%`
+        };
+      });
+      
+      const wsTaskCompletion = XLSX.utils.json_to_sheet(taskCompletionData);
+      XLSX.utils.book_append_sheet(wb, wsTaskCompletion, 'Task Completion');
+
+      // Export Report Submission Data
+      const reportSubmissionData = employeeDetails.reportSubmission.labels.map((week, index) => ({
+        'Week': week,
+        'Daily Reports': employeeDetails.reportSubmission.datasets[0].data[index] || 0,
+        'Weekly Reports': employeeDetails.reportSubmission.datasets[1].data[index] || 0
+      }));
+      
+      const wsReportSubmission = XLSX.utils.json_to_sheet(reportSubmissionData);
+      XLSX.utils.book_append_sheet(wb, wsReportSubmission, 'Report Submission');
+
+      // Export Attendance Data
+      const attendanceData = employeeDetails.attendance.labels.map((week, index) => {
+        const presentDays = employeeDetails.attendance.datasets[0].data[index] || 0;
+        const lateDays = employeeDetails.attendance.datasets[1].data[index] || 0;
+        const absentDays = employeeDetails.attendance.datasets[2].data[index] || 0;
+        const totalDays = presentDays + lateDays + absentDays;
+        const attendanceRate = totalDays > 0 
+          ? Math.round((presentDays / totalDays) * 100)
+          : 0;
+
+        return {
+          'Week': week,
+          'Present Days': presentDays,
+          'Late Days': lateDays,
+          'Absent Days': absentDays,
+          'Attendance Rate': `${attendanceRate}%`
+        };
+      });
+      
+      const wsAttendance = XLSX.utils.json_to_sheet(attendanceData);
+      XLSX.utils.book_append_sheet(wb, wsAttendance, 'Attendance');
+
+      // Generate Excel file
+      const fileName = `${selectedEmployee.name}_performance_${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+      
+      toast.success('Employee performance data exported successfully!');
+    } catch (error) {
+      console.error('Error exporting employee details:', error);
+      toast.error(error.message || 'Failed to export employee details');
+    }
+  };
+
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
       <AdminSidebar>
@@ -327,9 +694,18 @@ const PerformanceAnalytics = () => {
       </AdminSidebar>
 
       <div className="ml-64 flex-1 p-8 overflow-y-auto h-screen">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">Performance Analytics</h1>
-          <p className="text-gray-600 dark:text-gray-300">Weekly performance and employee growth metrics</p>
+        <div className="mb-8 flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">Performance Analytics</h1>
+            <p className="text-gray-600 dark:text-gray-300">Weekly performance and employee growth metrics</p>
+          </div>
+          <button
+            onClick={exportToExcel}
+            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          >
+            <FaFileExcel className="mr-2" />
+            Export to Excel
+          </button>
         </div>
 
         {error && (
@@ -429,6 +805,9 @@ const PerformanceAnalytics = () => {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Help Requests
                       </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Details
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -452,11 +831,121 @@ const PerformanceAnalytics = () => {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900 dark:text-white">{employee.helpRequests}</div>
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <button
+                            onClick={() => handleViewEmployee(employee)}
+                            className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                          >
+                            <FaEye className="w-5 h-5" />
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Employee Details Modal */}
+        {showEmployeeModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-11/12 max-w-6xl max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+                  {selectedEmployee?.name}'s Performance Details
+                </h2>
+                <div className="flex items-center space-x-4">
+                  <button
+                    onClick={exportEmployeeDetails}
+                    className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    <FaFileExcel className="mr-2" />
+                    Export Details
+                  </button>
+                  <button
+                    onClick={() => setShowEmployeeModal(false)}
+                    className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+
+              {employeeLoading ? (
+                <div className="flex justify-center items-center h-64">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+                </div>
+              ) : employeeDetails ? (
+                <div className="space-y-8">
+                  {/* Task Completion Chart */}
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Task Completion Rate</h3>
+                    <div className="h-80">
+                      <Bar
+                        data={employeeDetails.taskCompletion}
+                        options={{
+                          maintainAspectRatio: false,
+                          scales: {
+                            y: {
+                              beginAtZero: true,
+                              stacked: true
+                            },
+                            x: {
+                              stacked: true
+                            }
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Report Submission Chart */}
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Report Submission Rate</h3>
+                    <div className="h-80">
+                      <Line
+                        data={employeeDetails.reportSubmission}
+                        options={{
+                          maintainAspectRatio: false,
+                          scales: {
+                            y: {
+                              beginAtZero: true
+                            }
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Attendance Chart */}
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Weekly Attendance</h3>
+                    <div className="h-80">
+                      <Bar
+                        data={employeeDetails.attendance}
+                        options={{
+                          maintainAspectRatio: false,
+                          scales: {
+                            y: {
+                              beginAtZero: true,
+                              stacked: true
+                            },
+                            x: {
+                              stacked: true
+                            }
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center text-gray-500 dark:text-gray-400">
+                  No detailed data available for this employee.
+                </div>
+              )}
             </div>
           </div>
         )}
