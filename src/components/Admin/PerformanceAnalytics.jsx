@@ -371,21 +371,28 @@ const PerformanceAnalytics = () => {
         throw new Error('Employee ID is required');
       }
 
+      console.log('Fetching details for employeeId:', employeeId);
+
       // Get the start of the last 4 weeks
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - 28);
 
-      // Fetch tasks
+      // Fetch all tasks for summary stats (no date filter)
+      const { data: allTasks, error: allTasksError } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('created_by', employeeId);
+      if (allTasksError) throw allTasksError;
+      console.log('All tasks for employee:', allTasks);
+
+      // Fetch tasks for the last 4 weeks for the chart
       const { data: tasks, error: tasksError } = await supabase
         .from('tasks')
         .select('*')
-        .eq('assigned_to', employeeId)
+        .eq('created_by', employeeId)
         .gte('created_at', startDate.toISOString());
-
-      if (tasksError) {
-        console.error('Error fetching tasks:', tasksError);
-        throw new Error('Failed to fetch tasks');
-      }
+      if (tasksError) throw tasksError;
+      console.log('Recent tasks for employee:', tasks);
 
       // Fetch daily reports
       const { data: dailyReports, error: dailyReportsError } = await supabase
@@ -428,10 +435,20 @@ const PerformanceAnalytics = () => {
       const reportSubmissionData = processReportSubmissionData(dailyReports || [], weeklyReports || []);
       const attendanceData = processAttendanceData(attendance || []);
 
+      // Calculate task stats
+      const completedCount = allTasks.filter(task => task.status === 'completed').length;
+      const totalCount = allTasks.length;
+      const pendingCount = allTasks.filter(task => task.status !== 'completed').length;
+
       setEmployeeDetails({
         taskCompletion: taskCompletionData,
         reportSubmission: reportSubmissionData,
-        attendance: attendanceData
+        attendance: attendanceData,
+        taskStats: {
+          total: totalCount,
+          completed: completedCount,
+          pending: pendingCount
+        }
       });
     } catch (error) {
       console.error('Error fetching employee details:', error);
@@ -443,43 +460,60 @@ const PerformanceAnalytics = () => {
   };
 
   const processTaskCompletionData = (tasks) => {
-    const weeklyData = {};
-    const last4Weeks = Array.from({ length: 4 }, (_, i) => {
-      const date = new Date();
-      date.setDate(date.getDate() - (i * 7));
-      return date.toISOString().split('T')[0];
-    }).reverse();
+    // Get the last 4 full weeks (Monday to Sunday)
+    const weeks = [];
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    // Find last Monday
+    const lastMonday = new Date(now);
+    lastMonday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+    for (let i = 3; i >= 0; i--) {
+      const weekStart = new Date(lastMonday);
+      weekStart.setDate(lastMonday.getDate() - i * 7);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+      weeks.push({
+        start: new Date(weekStart),
+        end: new Date(weekEnd),
+        label: `${weekStart.toLocaleDateString()} - ${weekEnd.toLocaleDateString()}`
+      });
+    }
 
-    last4Weeks.forEach(week => {
-      weeklyData[week] = {
-        completed: 0,
-        total: 0
-      };
+    const weeklyData = weeks.map(() => ({ completed: 0, total: 0 }));
+
+    // Count total tasks by created_at week
+    tasks.forEach(task => {
+      const createdAt = new Date(task.created_at);
+      weeks.forEach((week, idx) => {
+        if (createdAt >= week.start && createdAt <= week.end) {
+          weeklyData[idx].total++;
+        }
+      });
     });
 
+    // Count completed tasks by completed_at week
     tasks.forEach(task => {
-      const taskDate = new Date(task.created_at).toISOString().split('T')[0];
-      const weekStart = last4Weeks.find(week => taskDate >= week);
-      
-      if (weekStart) {
-        weeklyData[weekStart].total++;
-        if (task.status === 'completed') {
-          weeklyData[weekStart].completed++;
-        }
+      if (task.status === 'completed' && task.completed_at) {
+        const completedAt = new Date(task.completed_at);
+        weeks.forEach((week, idx) => {
+          if (completedAt >= week.start && completedAt <= week.end) {
+            weeklyData[idx].completed++;
+          }
+        });
       }
     });
 
     return {
-      labels: last4Weeks.map(date => new Date(date).toLocaleDateString()),
+      labels: weeks.map(week => week.label),
       datasets: [
         {
           label: 'Completed Tasks',
-          data: last4Weeks.map(week => weeklyData[week].completed),
+          data: weeklyData.map(w => w.completed),
           backgroundColor: 'rgba(34, 197, 94, 0.6)',
         },
         {
           label: 'Total Tasks',
-          data: last4Weeks.map(week => weeklyData[week].total),
+          data: weeklyData.map(w => w.total),
           backgroundColor: 'rgba(59, 130, 246, 0.6)',
         }
       ]
@@ -655,6 +689,19 @@ const PerformanceAnalytics = () => {
     } catch (error) {
       console.error('Error exporting employee details:', error);
       toast.error(error.message || 'Failed to export employee details');
+    }
+  };
+
+  // DEBUG: Fetch and log the first 5 tasks in the table to inspect created_by values
+  const debugFetchTasks = async () => {
+    const { data, error } = await supabase
+      .from('tasks')
+      .select('*')
+      .limit(5);
+    if (error) {
+      console.error('DEBUG: Error fetching tasks:', error);
+    } else {
+      console.log('DEBUG: First 5 tasks:', data);
     }
   };
 
@@ -879,6 +926,27 @@ const PerformanceAnalytics = () => {
                 </div>
               ) : employeeDetails ? (
                 <div className="space-y-8">
+                  {/* Task Overview */}
+                  {employeeDetails && (
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-8">
+                      <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Task Overview</h3>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600 dark:text-gray-300">Total Tasks</span>
+                          <span className="text-gray-800 dark:text-white font-semibold">{employeeDetails.taskStats.total}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600 dark:text-gray-300">Completed</span>
+                          <span className="text-green-600 dark:text-green-400 font-semibold">{employeeDetails.taskStats.completed}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600 dark:text-gray-300">Pending</span>
+                          <span className="text-yellow-600 dark:text-yellow-400 font-semibold">{employeeDetails.taskStats.pending}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Task Completion Chart */}
                   <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
                     <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">Task Completion Rate</h3>
@@ -949,9 +1017,15 @@ const PerformanceAnalytics = () => {
             </div>
           </div>
         )}
+        <button
+          onClick={debugFetchTasks}
+          className="mb-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+        >
+          Debug: Log First 5 Tasks
+        </button>
       </div>
     </div>
   );
 };
 
-export default PerformanceAnalytics; 
+export default PerformanceAnalytics;
