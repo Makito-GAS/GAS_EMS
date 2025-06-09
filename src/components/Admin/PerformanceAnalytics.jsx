@@ -45,11 +45,27 @@ const PerformanceAnalytics = () => {
   const [showEmployeeModal, setShowEmployeeModal] = useState(false);
   const [employeeDetails, setEmployeeDetails] = useState(null);
   const [employeeLoading, setEmployeeLoading] = useState(false);
+  // Add state for department filter
+  const [departmentFilter, setDepartmentFilter] = useState('All');
+  // State for time range filter
+  const [dateRange, setDateRange] = useState({ start: '', end: '' });
+  // State for top/bottom performers
+  const [topPerformers, setTopPerformers] = useState([]);
+  const [bottomPerformers, setBottomPerformers] = useState([]);
+  // State for summary insights
+  const [insights, setInsights] = useState([]);
 
   useEffect(() => {
     fetchAnalyticsData();
-  }, []);
+  }, [departmentFilter, dateRange]);
 
+  // Helper to get unique department names from reports
+  const getDepartments = (reports) => {
+    const depts = new Set(reports.map(r => r.department));
+    return Array.from(depts);
+  };
+
+  // Enhanced fetchAnalyticsData with date range and insights
   const fetchAnalyticsData = async () => {
     try {
       setLoading(true);
@@ -60,11 +76,15 @@ const PerformanceAnalytics = () => {
       startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
 
       // Fetch daily reports for the current week
-      const { data: dailyReports, error: dailyReportsError } = await supabase
-        .from('daily_reports')
-        .select('*')
-        .gte('created_at', startOfWeek.toISOString())
-        .order('created_at', { ascending: true });
+      let dailyReportsQuery = supabase.from('daily_reports').select('*').gte('created_at', startOfWeek.toISOString()).order('created_at', { ascending: true });
+      if (departmentFilter !== 'All') {
+        dailyReportsQuery = dailyReportsQuery.eq('department', departmentFilter);
+      }
+      // Apply date range filter if set
+      if (dateRange.start && dateRange.end) {
+        dailyReportsQuery = dailyReportsQuery.gte('created_at', dateRange.start).lte('created_at', dateRange.end);
+      }
+      const { data: dailyReports, error: dailyReportsError } = await dailyReportsQuery;
 
       if (dailyReportsError) throw dailyReportsError;
 
@@ -147,6 +167,19 @@ const PerformanceAnalytics = () => {
       setDepartmentData(departmentPerformanceData);
       setEmployeeGrowth(employeeGrowthData);
       setWeeklyReportData(weeklyReportAnalytics);
+
+      // Calculate top/bottom performers
+      const growth = dailyReports?.length > 0 ? processEmployeeGrowth(dailyReports) : [];
+      setEmployeeGrowth(growth);
+      setTopPerformers(growth.slice().sort((a, b) => b.performanceScore - a.performanceScore).slice(0, 5));
+      setBottomPerformers(growth.slice().sort((a, b) => a.performanceScore - b.performanceScore).slice(0, 5));
+      // Generate summary insights
+      const pendingReports = growth.filter(e => e.totalReports < 4).length;
+      const lowPerformance = growth.filter(e => e.performanceScore < 60).length;
+      setInsights([
+        `${pendingReports} employees have not submitted all weekly reports in the selected period.`,
+        `${lowPerformance} employees have a performance score below 60%.`
+      ]);
     } catch (error) {
       console.error('Error fetching analytics data:', error);
       setError(error.message);
@@ -739,7 +772,6 @@ const PerformanceAnalytics = () => {
           path="/admin/settings"
         />
       </AdminSidebar>
-
       <div className="ml-64 flex-1 p-8 overflow-y-auto h-screen">
         <div className="mb-8 flex justify-between items-center">
           <div>
@@ -754,13 +786,73 @@ const PerformanceAnalytics = () => {
             Export to Excel
           </button>
         </div>
-
+        {/* Department Filter Dropdown */}
+        <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Filter by Department
+            </label>
+            <select
+              value={departmentFilter}
+              onChange={e => setDepartmentFilter(e.target.value)}
+              className="block w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            >
+              <option value="All">All Departments</option>
+              {/* Dynamically list departments */}
+              {employeeGrowth && getDepartments(employeeGrowth).map(dept => (
+                <option key={dept} value={dept}>{dept}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Filter by Date Range
+            </label>
+            <div className="flex gap-2">
+              <input type="date" value={dateRange.start} onChange={e => setDateRange({ ...dateRange, start: e.target.value })} className="px-2 py-1 border rounded" />
+              <input type="date" value={dateRange.end} onChange={e => setDateRange({ ...dateRange, end: e.target.value })} className="px-2 py-1 border rounded" />
+            </div>
+          </div>
+        </div>
+        {/* Insights Section */}
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">Key Insights</h3>
+          <ul className="list-disc pl-6 text-gray-700 dark:text-gray-300">
+            {insights.map((insight, idx) => (
+              <li key={idx}>{insight}</li>
+            ))}
+          </ul>
+        </div>
+        {/* Top/Bottom Performers */}
+        <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+            <h4 className="font-semibold mb-2 text-green-700 dark:text-green-400">Top 5 Performers</h4>
+            <ul>
+              {topPerformers.map(emp => (
+                <li key={emp.member_id} className="flex justify-between border-b py-1">
+                  <span>{emp.name}</span>
+                  <span className="font-bold">{emp.performanceScore}%</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+            <h4 className="font-semibold mb-2 text-red-700 dark:text-red-400">Bottom 5 Performers</h4>
+            <ul>
+              {bottomPerformers.map(emp => (
+                <li key={emp.member_id} className="flex justify-between border-b py-1">
+                  <span>{emp.name}</span>
+                  <span className="font-bold">{emp.performanceScore}%</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
             {error}
           </div>
         )}
-
         {loading ? (
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
@@ -1017,12 +1109,7 @@ const PerformanceAnalytics = () => {
             </div>
           </div>
         )}
-        <button
-          onClick={debugFetchTasks}
-          className="mb-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-        >
-          Debug: Log First 5 Tasks
-        </button>
+       
       </div>
     </div>
   );
