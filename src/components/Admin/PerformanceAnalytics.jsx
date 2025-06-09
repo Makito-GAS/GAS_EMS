@@ -54,10 +54,27 @@ const PerformanceAnalytics = () => {
   const [bottomPerformers, setBottomPerformers] = useState([]);
   // State for summary insights
   const [insights, setInsights] = useState([]);
+  // State for all departments (for dropdown)
+  const [allDepartments, setAllDepartments] = useState([]);
 
   useEffect(() => {
     fetchAnalyticsData();
   }, [departmentFilter, dateRange]);
+
+  // Fetch all departments for dropdown on mount
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      const { data, error } = await supabase
+        .from('daily_reports')
+        .select('department')
+        .neq('department', null);
+      if (!error && data) {
+        const uniqueDepts = Array.from(new Set(data.map(r => r.department)));
+        setAllDepartments(uniqueDepts);
+      }
+    };
+    fetchDepartments();
+  }, []);
 
   // Helper to get unique department names from reports
   const getDepartments = (reports) => {
@@ -69,23 +86,21 @@ const PerformanceAnalytics = () => {
   const fetchAnalyticsData = async () => {
     try {
       setLoading(true);
-      
-      // Get the start of the current week
-      const startOfWeek = new Date();
-      startOfWeek.setHours(0, 0, 0, 0);
-      startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-
-      // Fetch daily reports for the current week
-      let dailyReportsQuery = supabase.from('daily_reports').select('*').gte('created_at', startOfWeek.toISOString()).order('created_at', { ascending: true });
+      let dailyReportsQuery = supabase.from('daily_reports').select('*');
+      // Apply date range filter if set
+      if (dateRange.start && dateRange.end) {
+        dailyReportsQuery = dailyReportsQuery.gte('created_at', new Date(dateRange.start).toISOString()).lte('created_at', new Date(dateRange.end).toISOString());
+      } else {
+        // Default: current week
+        const startOfWeek = new Date();
+        startOfWeek.setHours(0, 0, 0, 0);
+        startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+        dailyReportsQuery = dailyReportsQuery.gte('created_at', startOfWeek.toISOString());
+      }
       if (departmentFilter !== 'All') {
         dailyReportsQuery = dailyReportsQuery.eq('department', departmentFilter);
       }
-      // Apply date range filter if set
-      if (dateRange.start && dateRange.end) {
-        dailyReportsQuery = dailyReportsQuery.gte('created_at', dateRange.start).lte('created_at', dateRange.end);
-      }
-      const { data: dailyReports, error: dailyReportsError } = await dailyReportsQuery;
-
+      const { data: dailyReports, error: dailyReportsError } = await dailyReportsQuery.order('created_at', { ascending: true });
       if (dailyReportsError) throw dailyReportsError;
 
       // Fetch weekly reports for the current quarter
@@ -799,7 +814,7 @@ const PerformanceAnalytics = () => {
             >
               <option value="All">All Departments</option>
               {/* Dynamically list departments */}
-              {employeeGrowth && getDepartments(employeeGrowth).map(dept => (
+              {allDepartments.map(dept => (
                 <option key={dept} value={dept}>{dept}</option>
               ))}
             </select>
@@ -1109,7 +1124,7 @@ const PerformanceAnalytics = () => {
             </div>
           </div>
         )}
-       
+        
       </div>
     </div>
   );
