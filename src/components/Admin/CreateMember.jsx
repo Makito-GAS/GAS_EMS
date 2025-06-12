@@ -146,6 +146,7 @@ const CreateMember = () => {
                   required
                 >
                   <option value="">Select a role</option>
+                  <option value="hr">HR</option>
                   {roles.map((roleOption) => (
                     <option key={roleOption} value={roleOption.toLowerCase()}>
                       {roleOption.charAt(0).toUpperCase() + roleOption.slice(1)}
