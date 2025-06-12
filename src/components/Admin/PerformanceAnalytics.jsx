@@ -16,7 +16,7 @@ import {
   PointElement,
   LineElement,
 } from 'chart.js';
-import { Bar, Pie, Line } from 'react-chartjs-2';
+import { Bar, Pie, Line, Doughnut } from 'react-chartjs-2';
 import * as XLSX from 'xlsx';
 import { toast } from 'react-hot-toast';
 
@@ -877,8 +877,28 @@ const PerformanceAnalytics = () => {
             {/* Task Status Distribution */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
               <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Daily Task Status Distribution</h2>
-              <div className="h-80">
-                <Pie data={weeklyData} options={{ maintainAspectRatio: false }} />
+              <div className="flex flex-col md:flex-row md:items-center md:gap-8">
+                <div className="h-96 w-full md:w-2/3">
+                  <Doughnut data={weeklyData} options={{ maintainAspectRatio: false }} />
+                </div>
+                {/* Pie chart values/legend with percentages */}
+                <div className="mt-6 md:mt-0 md:w-1/3 flex flex-col items-center">
+                  <h3 className="text-lg font-semibold mb-2 text-gray-800 dark:text-white">Status Breakdown</h3>
+                  <ul className="space-y-2 w-full">
+                    {weeklyData && weeklyData.labels.map((label, idx) => {
+                      const value = weeklyData.datasets[0].data[idx];
+                      const total = weeklyData.datasets[0].data.reduce((a, b) => a + b, 0);
+                      const percent = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                      const color = weeklyData.datasets[0].backgroundColor[idx];
+                      return (
+                        <li key={label} className="flex items-center justify-between px-4 py-2 rounded-lg" style={{ backgroundColor: color, color: '#fff' }}>
+                          <span className="font-medium">{label}</span>
+                          <span className="font-bold">{value} <span className="ml-2">({percent}%)</span></span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
               </div>
             </div>
 
@@ -886,8 +906,28 @@ const PerformanceAnalytics = () => {
             {weeklyReportData && (
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
                 <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-4">Quarterly OKR Status Distribution</h2>
-                <div className="h-80">
-                  <Pie data={weeklyReportData.okrStatus} options={{ maintainAspectRatio: false }} />
+                <div className="flex flex-col md:flex-row md:items-center md:gap-8">
+                  <div className="h-96 w-full md:w-2/3">
+                    <Doughnut data={weeklyReportData.okrStatus} options={{ maintainAspectRatio: false }} />
+                  </div>
+                  {/* Pie chart values/legend with percentages */}
+                  <div className="mt-6 md:mt-0 md:w-1/3 flex flex-col items-center">
+                    <h3 className="text-lg font-semibold mb-2 text-gray-800 dark:text-white">OKR Breakdown</h3>
+                    <ul className="space-y-2 w-full">
+                      {weeklyReportData.okrStatus && weeklyReportData.okrStatus.labels.map((label, idx) => {
+                        const value = weeklyReportData.okrStatus.datasets[0].data[idx];
+                        const total = weeklyReportData.okrStatus.datasets[0].data.reduce((a, b) => a + b, 0);
+                        const percent = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                        const color = weeklyReportData.okrStatus.datasets[0].backgroundColor[idx];
+                        return (
+                          <li key={label} className="flex items-center justify-between px-4 py-2 rounded-lg" style={{ backgroundColor: color, color: '#fff' }}>
+                            <span className="font-medium">{label}</span>
+                            <span className="font-bold">{value} <span className="ml-2">({percent}%)</span></span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
                 </div>
               </div>
             )}
