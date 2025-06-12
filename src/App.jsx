@@ -22,6 +22,8 @@ import PerformanceAnalytics from './components/Admin/PerformanceAnalytics';
 import Chat from './components/Chat/Chat';
 import AdminSettings from './components/Admin/AdminSettings';
 import EventSchedule from './components/Admin/EventSchedule';
+import HrDashboard from './components/Hr/HrDashboard';
+import Documents from './components/Hr/Documents';
 
 function App() {
   return (
@@ -69,6 +71,21 @@ function App() {
                         <Route path="AdminSettings" element={<AdminSettings />} />
                         <Route path="EventSchedule" element={<EventSchedule />} />
                         <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+                      </Routes>
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Protected Routes - HR/Admin Access */}
+                <Route
+                  path="/hr/*"
+                  element={
+                    <ProtectedRoute allowedRoles={['admin', 'hr']}>
+                      <Routes>
+                        <Route path="dashboard" element={<HrDashboard />} />
+                        {/* Add more HR routes here as you build features */}
+                        <Route path="documents" element={<Documents />} />
+                        <Route path="*" element={<Navigate to="/hr/dashboard" replace />} />
                       </Routes>
                     </ProtectedRoute>
                   }

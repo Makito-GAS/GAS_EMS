@@ -47,6 +47,8 @@ const Authform = () => {
               navigate('/admin/dashboard');
             } else if (result.role === 'employee') {
               navigate('/employee/dashboard');
+            } else if (result.role === 'hr') {
+              navigate('/hr/dashboard');
             } else {
               console.error('Invalid role:', result.role);
               setError("Invalid user role");
