@@ -9,7 +9,8 @@ const AnimatedLogo = ({ isVisible = true }) => {
       <div className="gas-logo">
         <div className="neon-text">GAS</div>
         <div className="rainbow-line"></div>
-        <div className="school-name">GRACE ARTISAN SCHOOL</div>
+        <div className="school-name">
+            WELCOME TO GRACE ARTISAN SCHOOL</div>
       </div>
     </div>
   );
