@@ -24,6 +24,7 @@ import AdminSettings from './components/Admin/AdminSettings';
 import EventSchedule from './components/Admin/EventSchedule';
 import HrDashboard from './components/Hr/HrDashboard';
 import Documents from './components/Hr/Documents';
+import EmployeeDocumentSubmission from './components/Employee/EmployeeDocumentSubmission';
 
 function App() {
   return (
@@ -49,6 +50,7 @@ function App() {
                         <Route path="profile" element={<EmployeeProfile />} />
                         <Route path="settings" element={<EmployeeSettings />} />
                         <Route path="chat" element={<Chat />} />
+                        <Route path="submit-documents" element={<EmployeeDocumentSubmission />} />
                         <Route path="*" element={<Navigate to="/employee/dashboard" replace />} />
                       </Routes>
                     </ProtectedRoute>
