@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
-import { FaTasks, FaCheckCircle, FaClock, FaChartLine, FaHome, FaCalendarAlt, FaUser, FaCog, FaSignOutAlt } from 'react-icons/fa'
+import { FaTasks, FaCheckCircle, FaClock, FaChartLine, FaHome, FaCalendarAlt, FaUser, FaCog, FaSignOutAlt, FaFileUpload } from 'react-icons/fa'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
 import Sidebar, { SidebarItem } from '../Sidebar/Sidebar'
 import { useLanguage } from '../../context/LanguageContext'
@@ -350,6 +350,11 @@ const EmployeeDashboard = () => {
           icon={<FaCog className="w-6 h-6" />}
           text="Settings"
           path="/employee/settings"
+        />
+        <SidebarItem 
+          icon={<FaFileUpload className="w-6 h-6" />}
+          text="Submit Documents"
+          path="/employee/submit-documents"
         />
       </Sidebar>
 
