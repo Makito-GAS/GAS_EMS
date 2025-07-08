@@ -25,6 +25,7 @@ import EventSchedule from './components/Admin/EventSchedule';
 import HrDashboard from './components/Hr/HrDashboard';
 import Documents from './components/Hr/Documents';
 import EmployeeDocumentSubmission from './components/Employee/EmployeeDocumentSubmission';
+import HRAgentChat from './components/Hr/HRAgentChat';
 
 function App() {
   return (
@@ -87,6 +88,7 @@ function App() {
                         <Route path="dashboard" element={<HrDashboard />} />
                         {/* Add more HR routes here as you build features */}
                         <Route path="documents" element={<Documents />} />
+                        <Route path="hr-agent" element={<HRAgentChat />} />
                         <Route path="*" element={<Navigate to="/hr/dashboard" replace />} />
                       </Routes>
                     </ProtectedRoute>
