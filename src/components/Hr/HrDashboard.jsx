@@ -41,7 +41,10 @@ const HrDashboard = () => {
           <FaUserCheck className="text-4xl text-green-500 mb-2" />
           <h2 className="text-xl font-semibold mb-2">HR Agent</h2>
           <p className="text-gray-600 dark:text-gray-300 text-center mb-4">Get instant answers, automate HR tasks, and assist employees with an AI-powered HR agent.</p>
-          <button className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Open HR Agent</button>
+          <button 
+          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+          onClick={() => navigate('/hr/hr-agent')}
+          >Open HR Agent</button>
         </div>
         {/* Analytics Dashboard */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 flex flex-col items-center">
