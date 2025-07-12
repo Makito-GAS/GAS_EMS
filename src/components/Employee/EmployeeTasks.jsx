@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaHome, FaTasks, FaCalendarAlt, FaUser, FaCog, FaPlus, FaTrash, FaFileAlt } from 'react-icons/fa';
-import Sidebar, { SidebarItem } from '../Sidebar/Sidebar';
+import { FaPlus, FaTrash, FaFileAlt } from 'react-icons/fa';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import supabase from '../../../supabase-client';
@@ -338,36 +337,7 @@ const EmployeeTasks = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Sidebar>
-        <SidebarItem 
-          icon={<FaHome className="w-6 h-6" />}
-          text={t('dashboard')}
-          path="/employee/dashboard"
-        />
-        <SidebarItem 
-          icon={<FaTasks className="w-6 h-6" />}
-          text={t('tasks')}
-          path="/employee/tasks"
-        />
-        <SidebarItem 
-          icon={<FaCalendarAlt className="w-6 h-6" />}
-          text={t('schedule')}
-          path="/employee/schedule"
-        />
-        <SidebarItem 
-          icon={<FaUser className="w-6 h-6" />}
-          text={t('profile')}
-          path="/employee/profile"
-        />
-        <SidebarItem 
-          icon={<FaCog className="w-6 h-6" />}
-          text={t('settings')}
-          path="/employee/settings"
-        />
-      </Sidebar>
-
-      <div className="flex-1 ml-64 p-8">
+    <div className="p-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800 dark:text-white">{t('tasks')}</h1>
           <div className="flex space-x-4">
@@ -760,7 +730,6 @@ const EmployeeTasks = () => {
           </div>
         )}
       </div>
-    </div>
   );
 };
 

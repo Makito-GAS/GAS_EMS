@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import Sidebar, { SidebarItem } from '../Sidebar/Sidebar';
-import { FaHome, FaTasks, FaCalendarAlt, FaUser, FaCog, FaEdit, FaSave } from 'react-icons/fa';
+import { FaEdit, FaSave, FaUser } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import supabase from '../../../supabase-client';
@@ -114,73 +113,14 @@ const EmployeeProfile = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
-        <Sidebar>
-          <SidebarItem 
-            icon={<FaHome className="w-6 h-6" />}
-            text={t('dashboard')}
-            path="/employee/dashboard"
-          />
-          <SidebarItem 
-            icon={<FaTasks className="w-6 h-6" />}
-            text={t('tasks')}
-            path="/employee/tasks"
-          />
-          <SidebarItem 
-            icon={<FaCalendarAlt className="w-6 h-6" />}
-            text={t('schedule')}
-            path="/employee/schedule"
-          />
-          <SidebarItem 
-            icon={<FaUser className="w-6 h-6" />}
-            text={t('profile')}
-            path="/employee/profile"
-          />
-          <SidebarItem 
-            icon={<FaCog className="w-6 h-6" />}
-            text={t('settings')}
-            path="/employee/settings"
-          />
-        </Sidebar>
-
-        <div className="p-6 flex-1 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-        </div>
+      <div className="p-6 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Sidebar>
-        <SidebarItem 
-          icon={<FaHome className="w-6 h-6" />}
-          text={t('dashboard')}
-          path="/employee/dashboard"
-        />
-        <SidebarItem 
-          icon={<FaTasks className="w-6 h-6" />}
-          text={t('tasks')}
-          path="/employee/tasks"
-        />
-        <SidebarItem 
-          icon={<FaCalendarAlt className="w-6 h-6" />}
-          text={t('schedule')}
-          path="/employee/schedule"
-        />
-        <SidebarItem 
-          icon={<FaUser className="w-6 h-6" />}
-          text={t('profile')}
-          path="/employee/profile"
-        />
-        <SidebarItem 
-          icon={<FaCog className="w-6 h-6" />}
-          text={t('settings')}
-          path="/employee/settings"
-        />
-      </Sidebar>
-
-      <div className="flex-1 ml-64 p-6">
+    <div className="p-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-gray-800 dark:text-white">{t('myProfile')}</h1>
           <button
@@ -324,7 +264,6 @@ const EmployeeProfile = () => {
           </div>
         </div>
       </div>
-    </div>
   );
 };
 

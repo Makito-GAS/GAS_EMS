@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import Sidebar, { SidebarItem } from '../Sidebar/Sidebar';
-import { FaHome, FaTasks, FaCalendarAlt, FaUser, FaCog, FaPlus, FaClock, FaTrash } from 'react-icons/fa';
+import { FaCalendarAlt } from 'react-icons/fa';
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import { useLanguage } from '../../context/LanguageContext';
@@ -131,189 +130,159 @@ const EmployeeSchedule = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Sidebar>
-        <SidebarItem 
-          icon={<FaHome className="w-6 h-6" />}
-          text={t('dashboard')}
-          path="/employee/dashboard"
-        />
-        <SidebarItem 
-          icon={<FaTasks className="w-6 h-6" />}
-          text={t('tasks')}
-          path="/employee/tasks"
-        />
-        <SidebarItem 
-          icon={<FaCalendarAlt className="w-6 h-6" />}
-          text={t('schedule')}
-          path="/employee/schedule"
-        />
-        <SidebarItem 
-          icon={<FaUser className="w-6 h-6" />}
-          text={t('profile')}
-          path="/employee/profile"
-        />
-        <SidebarItem 
-          icon={<FaCog className="w-6 h-6" />}
-          text={t('settings')}
-          path="/employee/settings"
-        />
-      </Sidebar>
+    <div className="p-8">
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-white">{t('mySchedule')}</h1>
+          <p className="text-gray-600 dark:text-gray-300 mt-1">{t('manageYourSchedule')}</p>
+        </div>
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="flex items-center px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-md"
+        >
+          <FaCalendarAlt className="mr-2" />
+          {t('addSchedule')}
+        </button>
+      </div>
 
-      <div className="flex-1 ml-64 p-8">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800 dark:text-white">{t('mySchedule')}</h1>
-            <p className="text-gray-600 dark:text-gray-300 mt-1">{t('manageYourSchedule')}</p>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Calendar */}
+        <div className="lg:col-span-1">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+            <Calendar
+              onChange={handleDateClick}
+              value={selectedDate}
+              tileClassName={tileClassName}
+              className="w-full border-none custom-calendar"
+            />
           </div>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-md"
-          >
-            <FaPlus className="mr-2" />
-            {t('addSchedule')}
-          </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Calendar */}
-          <div className="lg:col-span-1">
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-              <Calendar
-                onChange={handleDateClick}
-                value={selectedDate}
-                tileClassName={tileClassName}
-                className="w-full border-none custom-calendar"
-              />
+        {/* Schedule List */}
+        <div className="lg:col-span-2">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-semibold text-gray-800 dark:text-white">
+                {selectedDate.toLocaleDateString(undefined, { 
+                  weekday: 'long', 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric' 
+                })}
+              </h2>
             </div>
-          </div>
-
-          {/* Schedule List */}
-          <div className="lg:col-span-2">
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-semibold text-gray-800 dark:text-white">
-                  {selectedDate.toLocaleDateString(undefined, { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}
-                </h2>
+            
+            {loading ? (
+              <div className="flex justify-center items-center h-32">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
               </div>
-              
-              {loading ? (
-                <div className="flex justify-center items-center h-32">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {schedules[formatDate(selectedDate)]?.map((schedule, index) => (
-                    <div 
-                      key={schedule.id} 
-                      className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 transition-all hover:shadow-md"
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="flex items-start space-x-4">
-                          <div className="bg-blue-100 dark:bg-blue-900 p-3 rounded-lg">
-                            <FaClock className="w-5 h-5 text-blue-500 dark:text-blue-300" />
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
-                              {schedule.title}
-                            </h3>
-                            <p className="text-gray-600 dark:text-gray-300 mt-1">
-                              {schedule.description}
-                            </p>
-                            <div className="flex items-center mt-2 text-sm text-gray-500 dark:text-gray-400">
-                              <FaClock className="w-4 h-4 mr-1" />
-                              {schedule.time}
-                            </div>
+            ) : (
+              <div className="space-y-4">
+                {schedules[formatDate(selectedDate)]?.map((schedule, index) => (
+                  <div 
+                    key={schedule.id} 
+                    className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 transition-all hover:shadow-md"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-start space-x-4">
+                        <div className="bg-blue-100 dark:bg-blue-900 p-3 rounded-lg">
+                          <FaCalendarAlt className="w-5 h-5 text-blue-500 dark:text-blue-300" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
+                            {schedule.title}
+                          </h3>
+                          <p className="text-gray-600 dark:text-gray-300 mt-1">
+                            {schedule.description}
+                          </p>
+                          <div className="flex items-center mt-2 text-sm text-gray-500 dark:text-gray-400">
+                            <FaCalendarAlt className="w-4 h-4 mr-1" />
+                            {schedule.time}
                           </div>
                         </div>
-                        <button
-                          onClick={() => handleDeleteSchedule(formatDate(selectedDate), index)}
-                          className="text-red-500 hover:text-red-600 transition-colors"
-                        >
-                          <FaTrash className="w-5 h-5" />
-                        </button>
                       </div>
+                      <button
+                        onClick={() => handleDeleteSchedule(formatDate(selectedDate), index)}
+                        className="text-red-500 hover:text-red-600 transition-colors"
+                      >
+                        <FaCalendarAlt className="w-5 h-5" />
+                      </button>
                     </div>
-                  )) || (
-                    <div className="text-center py-8">
-                      <p className="text-gray-500 dark:text-gray-400">
-                        {t('noSchedulesForThisDate')}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+                  </div>
+                )) || (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500 dark:text-gray-400">
+                      {t('noSchedulesForThisDate')}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
+      </div>
 
-        {/* Add Schedule Modal */}
-        {showAddModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100]">
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md ml-64">
-              <h2 className="text-2xl font-semibold text-gray-800 dark:text-white mb-6">
-                {t('addNewSchedule')}
-              </h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-gray-700 dark:text-gray-300 mb-2">
-                    {t('time')}
-                  </label>
-                  <input
-                    type="time"
-                    value={newSchedule.time}
-                    onChange={(e) => setNewSchedule(prev => ({ ...prev, time: e.target.value }))}
-                    className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-700 dark:text-gray-300 mb-2">
-                    {t('title')}
-                  </label>
-                  <input
-                    type="text"
-                    value={newSchedule.title}
-                    onChange={(e) => setNewSchedule(prev => ({ ...prev, title: e.target.value }))}
-                    className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    placeholder={t('enterScheduleTitle')}
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-700 dark:text-gray-300 mb-2">
-                    {t('description')}
-                  </label>
-                  <textarea
-                    value={newSchedule.description}
-                    onChange={(e) => setNewSchedule(prev => ({ ...prev, description: e.target.value }))}
-                    className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                    placeholder={t('enterScheduleDescription')}
-                    rows="3"
-                  />
-                </div>
-                <div className="flex justify-end space-x-3 pt-4">
-                  <button
-                    onClick={() => setShowAddModal(false)}
-                    className="px-6 py-3 border rounded-lg hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700 dark:text-white transition-colors"
-                  >
-                    {t('cancel')}
-                  </button>
-                  <button
-                    onClick={handleAddSchedule}
-                    className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                  >
-                    {t('addSchedule')}
-                  </button>
-                </div>
+      {/* Add Schedule Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100]">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md ml-64">
+            <h2 className="text-2xl font-semibold text-gray-800 dark:text-white mb-6">
+              {t('addNewSchedule')}
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-gray-700 dark:text-gray-300 mb-2">
+                  {t('time')}
+                </label>
+                <input
+                  type="time"
+                  value={newSchedule.time}
+                  onChange={(e) => setNewSchedule(prev => ({ ...prev, time: e.target.value }))}
+                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-gray-700 dark:text-gray-300 mb-2">
+                  {t('title')}
+                </label>
+                <input
+                  type="text"
+                  value={newSchedule.title}
+                  onChange={(e) => setNewSchedule(prev => ({ ...prev, title: e.target.value }))}
+                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  placeholder={t('enterScheduleTitle')}
+                />
+              </div>
+              <div>
+                <label className="block text-gray-700 dark:text-gray-300 mb-2">
+                  {t('description')}
+                </label>
+                <textarea
+                  value={newSchedule.description}
+                  onChange={(e) => setNewSchedule(prev => ({ ...prev, description: e.target.value }))}
+                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  placeholder={t('enterScheduleDescription')}
+                  rows="3"
+                />
+              </div>
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  onClick={() => setShowAddModal(false)}
+                  className="px-6 py-3 border rounded-lg hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700 dark:text-white transition-colors"
+                >
+                  {t('cancel')}
+                </button>
+                <button
+                  onClick={handleAddSchedule}
+                  className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  {t('addSchedule')}
+                </button>
               </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <style jsx>{`
         .custom-calendar {

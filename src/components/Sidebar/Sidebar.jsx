@@ -7,31 +7,25 @@ import { useNavigate, NavLink } from 'react-router-dom';
 
 export const SidebarItem = ({ icon, text, path, onClick }) => {
   const { expanded } = React.useContext(SidebarContext);
+  const navigate = useNavigate();
 
-  if (onClick) {
-    return (
-      <button
-        onClick={onClick}
-        className="w-full flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white transition-colors rounded-lg"
-      >
-        {icon}
-        {expanded && <span className="ml-3">{text}</span>}
-      </button>
-    );
-  }
+  const handleClick = (e) => {
+    if (onClick) {
+      onClick();
+    }
+    if (path) {
+      navigate(path);
+    }
+  };
 
   return (
-    <NavLink
-      to={path}
-      className={({ isActive }) =>
-        `flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white transition-colors rounded-lg ${
-          isActive ? 'bg-gray-700 text-white' : ''
-        }`
-      }
+    <button
+      onClick={handleClick}
+      className="w-full flex items-center px-4 py-2 text-gray-300 hover:bg-gray-700 hover:text-white transition-colors rounded-lg"
     >
       {icon}
       {expanded && <span className="ml-3">{text}</span>}
-    </NavLink>
+    </button>
   );
 };
 
@@ -76,6 +70,8 @@ const Sidebar = ({ children }) => {
               path="/chat"
             />
           </ul>
+
+        
 
           {/* User details */}
           <div className="border-t border-gray-700 flex p-3">

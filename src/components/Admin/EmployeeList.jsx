@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
-import AdminSidebar, { AdminSidebarItem } from './AdminSidebar';
+
 import { FaHome, FaUsers, FaUserPlus, FaChartBar, FaCog, FaEdit, FaTrash, FaSearch } from 'react-icons/fa';
 import supabase from '../../../supabase-client';
 
@@ -192,35 +192,9 @@ const EmployeeList = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-50  dark:bg-gray-900">
-      <AdminSidebar>
-        <AdminSidebarItem 
-          icon={<FaHome className="w-6 h-6" />}
-          text="Dashboard"
-          path="/admin/dashboard"
-        />
-        <AdminSidebarItem 
-          icon={<FaUsers className="w-6 h-6" />}
-          text="Manage Employees"
-          path="/admin/employees"
-        />
-        <AdminSidebarItem 
-          icon={<FaUserPlus className="w-6 h-6" />}
-          text="Add Employee"
-          path="/admin/add-employee"
-        />
-        <AdminSidebarItem 
-          icon={<FaChartBar className="w-6 h-6" />}
-          text="Reports"
-          path="/admin/reports"
-        />
-        <AdminSidebarItem 
-          icon={<FaCog className="w-6 h-6" />}
-          text="Settings"
-          path="/admin/settings"
-        />
-      </AdminSidebar>
+      
 
-      <div className="ml-64 flex-1 p-8 overflow-y-auto h-screen">
+      <div className="ml-30 flex-1 p-8 overflow-y-auto h-screen">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">Employee Management</h1>
           <p className="text-gray-600 dark:text-white">View and manage all employees in the system</p>
