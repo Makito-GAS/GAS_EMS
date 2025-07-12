@@ -17,3 +17,5 @@ coverage/
 *.swp
 *.tmp
 public/*.svg
+# Local Netlify folder
+.netlify
