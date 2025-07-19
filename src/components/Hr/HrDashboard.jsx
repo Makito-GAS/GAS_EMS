@@ -1,60 +1,71 @@
 import React from 'react';
-import { FaFileAlt, FaChartBar, FaUserCheck, FaClipboardList, FaBriefcase, FaUserPlus } from 'react-icons/fa';
-import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { FaSearch } from 'react-icons/fa';
+import StatCard from './StatCard';
+import ChartCard from './ChartCard';
+import DonutCard from './DonutCard';
+import MemberList from './MemberList';
+import ScheduleWidget from './ScheduleWidget';
+
+const mockMembers = [
+  { name: 'Theo Lawrence', email: 'theo.lawrence@gmail.com', type: 'Fulltime', department: 'Product Design', status: 'Absent', date: '12 Oct 2025', avatar: '/src/data/avatar.jpg' },
+  { name: 'Anita Elizabeth', email: 'elizabethanita@gmail.com', type: 'Freelance', department: 'Development', status: 'Invited', date: '6 Nov 2025', avatar: '/src/data/avatar2.jpg' },
+];
+
+const donutLegend = [
+  { color: '#fb923c', value: 206, text: 'Fulltime' },
+  { color: '#22c55e', value: 48, text: 'Remote' },
+  { color: '#fb923c', value: '+2', text: 'Intern' },
+  { color: '#22c55e', value: '+3', text: 'Onboarding' },
+];
+
+const scheduleEvents = [
+  { time: '10:45 AM - 11:30 AM', title: 'Call with Alex Shotay - UX Design...', person: 'Theo Lawrence' },
+  { time: '01:30 PM - 02:30 PM', title: 'Interview with Project Manager', person: 'Alex Shotay' },
+  { time: '03:00 PM - 04:00 PM', title: 'Interview with UX Designer', person: 'Jun Lee' },
+  { time: '04:30 PM - 05:00 PM', title: 'Kick Off - Mobile App Project' },
+];
 
 const HrDashboard = () => {
-  const { signOut } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = async () => {
-    await signOut();
-    // Use React Router navigation to ensure app state resets
-    navigate('/');
-  };
-
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-white">HR Dashboard</h1>
-        <button onClick={handleLogout} className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Logout</button>
+    <div className="p-4 md:p-8 bg-gray-50 min-h-screen">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+        <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
+        <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 shadow border">
+          <FaSearch className="text-gray-400" />
+          <input className="outline-none bg-transparent ml-2" placeholder="Search" />
+        </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 flex flex-col items-center">
-          <FaFileAlt className="text-4xl text-blue-500 mb-2" />
-          <h2 className="text-xl font-semibold mb-2">Documents</h2>
-          <p className="text-gray-600 dark:text-gray-300 text-center mb-4">Manage employee documents, upload, review, and approve submissions.</p>
-          <button className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" onClick={() => navigate('/hr/documents')}>Go to Documents</button>
+      {/* Main Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column */}
+        <div className="lg:col-span-2 flex flex-col gap-6">
+          {/* Top Row: Avg Work Hours + Member Type */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Avg Work Hours Chart */}
+            <div className="col-span-2">
+              <ChartCard title="Avg. Work Hours" subtitle="8 Nov 2024 - 14 Nov 2024 | Last 7 days">
+                <span className="text-gray-300">[Line Chart]</span>
+              </ChartCard>
+            </div>
+            {/* Member Type Donut */}
+            <DonutCard value={254} label="Member Type" legend={donutLegend} />
+          </div>
+          {/* Stat Cards Row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <StatCard label="Total Payroll" value="$34,428.50" trend="▼ 24% vs Last Week" trendColor="text-red-500">
+              <span className="text-gray-300">[Bar Chart]</span>
+            </StatCard>
+            <StatCard label="Job Applicant" value="12,845" trend="▲ 15% vs Last Week" trendColor="text-green-500">
+              <span className="text-gray-300">[Bar Chart]</span>
+            </StatCard>
+          </div>
+          {/* List of Members Table */}
+          <MemberList members={mockMembers} />
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 flex flex-col items-center">
-          <FaChartBar className="text-4xl text-green-500 mb-2" />
-          <h2 className="text-xl font-semibold mb-2">Analytics</h2>
-          <p className="text-gray-600 dark:text-gray-300 text-center mb-4">View HR analytics, employee performance, and compliance reports.</p>
-          <button className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">View Analytics</button>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 flex flex-col items-center">
-          <FaUserCheck className="text-4xl text-yellow-500 mb-2" />
-          <h2 className="text-xl font-semibold mb-2">Attendance</h2>
-          <p className="text-gray-600 dark:text-gray-300 text-center mb-4">Track employee attendance, leaves, and absences.</p>
-          <button className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">Check Attendance</button>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 flex flex-col items-center">
-          <FaClipboardList className="text-4xl text-purple-500 mb-2" />
-          <h2 className="text-xl font-semibold mb-2">Tasks</h2>
-          <p className="text-gray-600 dark:text-gray-300 text-center mb-4">Assign and manage HR tasks, monitor progress, and deadlines.</p>
-          <button className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">Manage Tasks</button>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 flex flex-col items-center">
-          <FaBriefcase className="text-4xl text-pink-500 mb-2" />
-          <h2 className="text-xl font-semibold mb-2">Job Openings</h2>
-          <p className="text-gray-600 dark:text-gray-300 text-center mb-4">Post new job openings, review applications, and schedule interviews.</p>
-          <button className="bg-pink-500 text-white px-4 py-2 rounded hover:bg-pink-600">View Openings</button>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 flex flex-col items-center">
-          <FaUserPlus className="text-4xl text-indigo-500 mb-2" />
-          <h2 className="text-xl font-semibold mb-2">Employee Onboarding</h2>
-          <p className="text-gray-600 dark:text-gray-300 text-center mb-4">Automate onboarding: checklists, document collection, and welcome tasks for new hires.</p>
-          <button className="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600">Start Onboarding</button>
+        {/* Right Column: Schedule */}
+        <div className="flex flex-col gap-6">
+          <ScheduleWidget date="10 Nov 2025" events={scheduleEvents} />
         </div>
       </div>
     </div>

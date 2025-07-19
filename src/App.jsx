@@ -28,6 +28,12 @@ import EmployeeDocumentSubmission from './components/Employee/EmployeeDocumentSu
 import Projects from './components/Admin/Projects';
 import AdminLayout from './components/Admin/AdminLayout';
 import EmployeeLayout from './components/Sidebar/EmployeeLayout';
+import EmployeeProjects from './components/Employee/EmployeeProjects';
+import Onboard from './components/Hr/Onboard';
+import OnboardingChecklist from './components/Onboarding/OnboardingChecklist';
+import DocumentUploader from './components/Onboarding/DocumentUploader';
+import WelcomeTasks from './components/Onboarding/WelcomeTasks';
+import HrLayout from './components/Hr/HrLayout';
 
 function App() {
   return (
@@ -56,6 +62,7 @@ function App() {
                   <Route path="profile" element={<EmployeeProfile />} />
                   <Route path="settings" element={<EmployeeSettings />} />
                   <Route path="chat" element={<Chat />} />
+                  <Route path="eprojects" element={<EmployeeProjects />} />
                   <Route path="submit-documents" element={<EmployeeDocumentSubmission />} />
                   <Route path="*" element={<Navigate to="/employee/dashboard" replace />} />
                 </Route>
@@ -87,15 +94,18 @@ function App() {
                   path="/hr/*"
                   element={
                     <ProtectedRoute allowedRoles={['admin', 'hr']}>
-                      <Routes>
-                        <Route path="dashboard" element={<HrDashboard />} />
-                        {/* Add more HR routes here as you build features */}
-                        <Route path="documents" element={<Documents />} />
-                        <Route path="*" element={<Navigate to="/hr/dashboard" replace />} />
-                      </Routes>
+                      <HrLayout />
                     </ProtectedRoute>
                   }
-                />
+                >
+                  <Route path="dashboard" element={<HrDashboard />} />
+                  <Route path="documents" element={<Documents />} />
+                  <Route path="onboard" element={<Onboard />} />
+                  <Route path="onboarding-checklist" element={<OnboardingChecklist />} />
+                  <Route path="document-uploader" element={<DocumentUploader />} />
+                  <Route path="welcome-tasks" element={<WelcomeTasks />} />
+                  <Route path="*" element={<Navigate to="/hr/dashboard" replace />} />
+                </Route>
 
                 {/* Protected Routes - Common Access (for authenticated users) */}
                 <Route

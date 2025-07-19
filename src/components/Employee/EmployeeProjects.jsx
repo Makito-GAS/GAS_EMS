@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
-import { Row, Col, Card, Button, Input, Modal, Form, DatePicker, Select, Avatar, List, Tooltip, Tag, Timeline } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, TeamOutlined, CalendarOutlined, SearchOutlined } from '@ant-design/icons';
+import React, { useState, useEffect } from 'react';
+import { Row, Col, Card, Input, Avatar, List, Tooltip, Tag, Button, Modal, Form, DatePicker, Select, message } from 'antd';
+import { UserOutlined, TeamOutlined, CalendarOutlined, SearchOutlined, EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import moment from 'moment';
 import supabase from '../../../supabase-client';
+import { useAuth } from '../../context/AuthContext';
 
+// --- Status Colors ---
 const statusColors = {
   'not started': 'default',
   'started': 'orange',
@@ -12,15 +14,9 @@ const statusColors = {
   'completed': 'green'
 };
 
-const { Option } = Select;
-
 // --- Budget Section ---
-const BudgetSection = ({ budget, onAdd, onEdit, onDelete }) => (
-  <Card
-    title="Budget Breakup"
-    extra={<Button type="primary" onClick={onAdd}>+ Add Budget</Button>}
-    style={{ marginBottom: 24 }}
-  >
+const BudgetSection = ({ budget, onAdd, onEdit, onDelete, userId }) => (
+  <Card title="Budget Breakup" extra={<Button type="primary" onClick={onAdd} icon={<PlusOutlined />}>Add Budget</Button>} style={{ marginBottom: 24 }}>
     {budget.length === 0 ? (
       <div>No budget items found</div>
     ) : (
@@ -28,10 +24,14 @@ const BudgetSection = ({ budget, onAdd, onEdit, onDelete }) => (
         dataSource={budget}
         renderItem={item => (
           <List.Item
-            actions={[
-              <Button icon={<EditOutlined />} size="small" onClick={() => onEdit(item)} />,
-              <Button icon={<DeleteOutlined />} size="small" danger onClick={() => onDelete(item.id)} />
-            ]}
+            actions={
+              item.created_by === userId
+                ? [
+                    <Button icon={<EditOutlined />} size="small" onClick={() => onEdit(item)} />,
+                    <Button icon={<DeleteOutlined />} size="small" danger onClick={() => onDelete(item.id)} />
+                  ]
+                : []
+            }
           >
             <div style={{ width: '100%' }}>
               <div style={{ fontWeight: 500 }}>{item.description}</div>
@@ -57,10 +57,9 @@ const BudgetSection = ({ budget, onAdd, onEdit, onDelete }) => (
   </Card>
 );
 
-// --- Budget Form Modal ---
 const BudgetForm = ({ visible, onCancel, onSubmit, initial }) => {
   const [form] = Form.useForm();
-  React.useEffect(() => {
+  useEffect(() => {
     if (visible) {
       form.setFieldsValue(initial || { description: '', planned_amount: '', actual_amount: '', remarks: '' });
     }
@@ -69,12 +68,20 @@ const BudgetForm = ({ visible, onCancel, onSubmit, initial }) => {
     <Modal
       title={initial ? 'Edit Budget' : 'Add Budget'}
       open={visible}
-      onOk={() => form.validateFields().then(values => { onSubmit(values); form.resetFields(); })}
-      onCancel={onCancel}
+      onOk={async () => {
+        try {
+          const values = await form.validateFields();
+          onSubmit(values);
+          form.resetFields();
+        } catch (err) {
+          message.error('Please fill all required fields.');
+        }
+      }}
+      onCancel={() => { form.resetFields(); onCancel(); }}
       okText={initial ? 'Update' : 'Add'}
     >
       <Form form={form} layout="vertical">
-        <Form.Item name="description" label="Description" rules={[{ required: true }]}>
+      <Form.Item name="description" label="Description" rules={[{ required: true }]}>
           <Input />
         </Form.Item>
         <Form.Item name="planned_amount" label="Planned Amount" rules={[{ required: true }]}>
@@ -91,12 +98,12 @@ const BudgetForm = ({ visible, onCancel, onSubmit, initial }) => {
   );
 };
 
-// --- Milestone Section with Timeline ---
-const MilestoneSection = ({ milestones = [], onAdd, onEdit, onDelete }) => {
+// --- Milestone Section ---
+const MilestoneSection = ({ milestones = [], onAdd, onEdit, onDelete, userId }) => {
   const dotSize = 24;
   const lineWidth = 8;
-  const cardSpacing = 56; // vertical space between cards
-  const cardOffset = 32;  // vertical offset for the first card
+  const cardSpacing = 56;
+  const cardOffset = 32;
 
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 0, position: 'relative' }}>
@@ -137,7 +144,7 @@ const MilestoneSection = ({ milestones = [], onAdd, onEdit, onDelete }) => {
       <div style={{ flex: 1 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <span style={{ fontWeight: 600, fontSize: 16 }}>Project Milestones</span>
-          <Button type="primary" onClick={onAdd}>+ Add Milestone</Button>
+          <Button type="primary" onClick={onAdd} icon={<PlusOutlined />}>Add Milestone</Button>
         </div>
         {milestones.length === 0 ? (
           <div>No milestones found</div>
@@ -150,7 +157,6 @@ const MilestoneSection = ({ milestones = [], onAdd, onEdit, onDelete }) => {
                 style={{ flex: 1, borderLeft: `4px solid ${statusColors[item.status] || '#d9d9d9'}` }}
                 styles={{ body: { padding: 12 } }}
               >
-                {/* Description at the top */}
                 <div style={{ fontWeight: 500, marginBottom: 4 }}>{item.description}</div>
                 <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                   <Tag color={statusColors[item.status]}>{item.status}</Tag>
@@ -158,8 +164,12 @@ const MilestoneSection = ({ milestones = [], onAdd, onEdit, onDelete }) => {
                   <Tag color="gold" icon={<CalendarOutlined />}>Expected: {item.expected_completion}</Tag>
                   <Tag color="purple" icon={<UserOutlined />}>{item.creator?.name || 'Unknown'}</Tag>
                   <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-                    <Button icon={<EditOutlined />} size="small" onClick={() => onEdit(item)} />
-                    <Button icon={<DeleteOutlined />} size="small" danger onClick={() => onDelete(item.id)} />
+                    {item.created_by === userId && (
+                      <>
+                        <Button icon={<EditOutlined />} size="small" onClick={() => onEdit(item)} />
+                        <Button icon={<DeleteOutlined />} size="small" danger onClick={() => onDelete(item.id)} />
+                      </>
+                    )}
                   </div>
                 </div>
                 {item.remarks && <div style={{ color: '#888', fontSize: 13, marginTop: 2 }}>{item.remarks}</div>}
@@ -172,10 +182,9 @@ const MilestoneSection = ({ milestones = [], onAdd, onEdit, onDelete }) => {
   );
 };
 
-// --- Milestone Form Modal (with moment fix) ---
 const MilestoneForm = ({ visible, onCancel, onSubmit, initial }) => {
   const [form] = Form.useForm();
-  React.useEffect(() => {
+  useEffect(() => {
     if (visible) {
       if (initial) {
         form.setFieldsValue({
@@ -185,7 +194,7 @@ const MilestoneForm = ({ visible, onCancel, onSubmit, initial }) => {
           expected_completion: initial.expected_completion ? moment(initial.expected_completion) : null,
         });
       } else {
-        form.resetFields(); // This ensures all fields are undefined/null
+        form.resetFields();
       }
     }
   }, [visible, initial]);
@@ -193,26 +202,24 @@ const MilestoneForm = ({ visible, onCancel, onSubmit, initial }) => {
     <Modal
       title={initial ? 'Edit Milestone' : 'Add Milestone'}
       open={visible}
-      onOk={() => {
-        form
-          .validateFields()
-          .then(values => {
-            onSubmit(values);
-            form.resetFields();
-          });
+      onOk={async () => {
+        try {
+          const values = await form.validateFields();
+          onSubmit(values);
+          form.resetFields();
+        } catch (err) {
+          message.error('Please fill all required fields.');
+        }
       }}
-      onCancel={() => {
-        form.resetFields();
-        onCancel();
-      }}
+      onCancel={() => { form.resetFields(); onCancel(); }}
       okText={initial ? 'Update' : 'Add'}
     >
       <Form form={form} layout="vertical">
-        <Form.Item name="description" label="Description" rules={[{ required: true, message: 'Please enter a description' }]}>
+      <Form.Item name="description" label="Description" rules={[{ required: true, message: 'Please enter a description' }]}>
           <Input />
         </Form.Item>
         <Form.Item name="status" label="Status" rules={[{ required: true, message: 'Please select a status' }]}>
-          <Select>
+          <Select placeholder="Select status">
             <Select.Option value="not started">Not Started</Select.Option>
             <Select.Option value="started">Started</Select.Option>
             <Select.Option value="delayed">Delayed</Select.Option>
@@ -237,13 +244,6 @@ const MilestoneForm = ({ visible, onCancel, onSubmit, initial }) => {
   );
 };
 
-// --- Budget & Milestone Wrapper ---
-const BudgetMilestoneWrapper = ({ children }) => (
-  <Card style={{ marginBottom: 24, border: '1px solid #e6e6e6', borderRadius: 8, boxShadow: '0 2px 8px #f0f1f2' }}>
-    {children}
-  </Card>
-);
-
 // --- Team Avatars ---
 const TeamAvatars = ({ team = [] }) => (
   <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginBottom: 16 }}>
@@ -255,31 +255,36 @@ const TeamAvatars = ({ team = [] }) => (
   </div>
 );
 
-const Projects = () => {
+// --- Budget & Milestone Wrapper ---
+const BudgetMilestoneWrapper = ({ children }) => (
+  <Card style={{ marginBottom: 24, border: '1px solid #e6e6e6', borderRadius: 8, boxShadow: '0 2px 8px #f0f1f2' }}>
+    {children}
+  </Card>
+);
+
+const EmployeeProjects = () => {
+  const { session } = useAuth();
+  const userId = session?.user?.id;
   const [projects, setProjects] = useState([]);
   const [search, setSearch] = useState('');
   const [selectedProject, setSelectedProject] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [form] = Form.useForm();
-  const [isEdit, setIsEdit] = useState(false);
-  const [members, setMembers] = useState([]); // Add members state
-  const [selectedProjectTeam, setSelectedProjectTeam] = useState([]); // Add team state for selected project
-
-  const [budgets, setBudgets] = useState([]); // Flat array for current project
-  const [milestones, setMilestones] = useState([]); // Flat array for current project
+  const [selectedProjectTeam, setSelectedProjectTeam] = useState([]);
+  const [budgets, setBudgets] = useState([]);
+  const [milestones, setMilestones] = useState([]);
   const [budgetModal, setBudgetModal] = useState(false);
   const [milestoneModal, setMilestoneModal] = useState(false);
   const [editingBudget, setEditingBudget] = useState(null);
   const [editingMilestone, setEditingMilestone] = useState(null);
 
-  // Fetch all projects and members on mount
-  React.useEffect(() => {
-    fetchProjects();
-    fetchMembers();
-  }, []);
+  // Fetch projects assigned to this employee
+  useEffect(() => {
+    if (userId) {
+      fetchEmployeeProjects(userId);
+    }
+  }, [userId]);
 
   // Fetch budgets and milestones when selectedProject changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (selectedProject) {
       fetchBudgets(selectedProject.id);
       fetchMilestones(selectedProject.id);
@@ -291,17 +296,30 @@ const Projects = () => {
     }
   }, [selectedProject]);
 
-  // Fetch projects from Supabase
-  const fetchProjects = async () => {
+  // Fetch projects where the employee is a team member
+  const fetchEmployeeProjects = async (employeeId) => {
+    // Get all project_team rows for this employee
+    const { data: teamRows, error: teamError } = await supabase
+      .from('project_team')
+      .select('project_id')
+      .eq('member_id', employeeId);
+    if (teamError || !teamRows) {
+      setProjects([]);
+      setSelectedProject(null);
+      return;
+    }
+    const projectIds = teamRows.map(row => row.project_id);
+    if (projectIds.length === 0) {
+      setProjects([]);
+      setSelectedProject(null);
+      return;
+    }
+    // Fetch project details for these IDs
     const { data, error } = await supabase
       .from('projects')
-      .select(`
-        *,
-        lead:lead_id(id, name, email),
-        created_by_member:created_by(id, name, email)
-      `)
+      .select(`*, lead:lead_id(id, name, email), created_by_member:created_by(id, name, email)`)
+      .in('id', projectIds)
       .order('created_at', { ascending: false });
-    
     if (!error && data) {
       // Fetch team counts for each project
       const projectsWithTeamCounts = await Promise.all(
@@ -310,27 +328,17 @@ const Projects = () => {
             .from('project_team')
             .select('*', { count: 'exact', head: true })
             .eq('project_id', project.id);
-          
           return {
             ...project,
             team_count: countError ? 0 : (count || 0)
           };
         })
       );
-      
       setProjects(projectsWithTeamCounts);
       setSelectedProject(projectsWithTeamCounts[0] || null);
-    }
-  };
-
-  // Fetch all members from Supabase
-  const fetchMembers = async () => {
-    const { data, error } = await supabase
-      .from('member')
-      .select('id, name, email')
-      .order('name');
-    if (!error) {
-      setMembers(data || []);
+    } else {
+      setProjects([]);
+      setSelectedProject(null);
     }
   };
 
@@ -338,12 +346,9 @@ const Projects = () => {
   const fetchProjectTeam = async (projectId) => {
     const { data, error } = await supabase
       .from('project_team')
-      .select(`
-        member_id,
-        member:member_id(id, name, email)
-      `)
+      .select(`member_id, member:member_id(id, name, email)`)
       .eq('project_id', projectId);
-    if (!error) {
+    if (!error && data) {
       return data.map(item => item.member);
     }
     return [];
@@ -359,7 +364,6 @@ const Projects = () => {
         .order('created_at', { ascending: true });
       if (!error) setBudgets(data);
     } catch (error) {
-      // Table might not exist yet, set empty array
       setBudgets([]);
     }
   };
@@ -369,16 +373,125 @@ const Projects = () => {
     try {
       const { data, error } = await supabase
         .from('project_milestone')
-        .select(`
-          *,
-          creator:created_by(id, name, email)
-        `)
+        .select(`*, creator:created_by(id, name, email)`)
         .eq('project_id', projectId)
         .order('start_date', { ascending: true });
       if (!error) setMilestones(data);
     } catch (error) {
-      // Table might not exist yet, set empty array
       setMilestones([]);
+    }
+  };
+
+  // Budget CRUD
+  const handleAddBudget = () => { setEditingBudget(null); setBudgetModal(true); };
+  const handleEditBudget = (item) => { setEditingBudget(item); setBudgetModal(true); };
+  const handleDeleteBudget = async (id) => {
+    try {
+      const { error } = await supabase
+        .from('project_budget')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      if (selectedProject) fetchBudgets(selectedProject.id);
+    } catch (err) {
+      message.error('Failed to delete budget.');
+      console.error(err);
+    }
+  };
+  const handleSubmitBudget = async (values) => {
+    try {
+      if (editingBudget) {
+        if (editingBudget.created_by !== userId) return;
+        const payload = {
+          description: values.description,
+          planned_amount: Number(values.planned_amount),
+          actual_amount: Number(values.actual_amount),
+          remarks: values.remarks
+        };
+        const { error } = await supabase
+          .from('project_budget')
+          .update(payload)
+          .eq('id', editingBudget.id);
+        if (error) throw error;
+        if (selectedProject) fetchBudgets(selectedProject.id);
+      } else {
+        const payload = {
+          description: values.description,
+          planned_amount: Number(values.planned_amount),
+          actual_amount: Number(values.actual_amount),
+          remarks: values.remarks,
+          project_id: selectedProject.id
+        };
+        const { error } = await supabase
+          .from('project_budget')
+          .insert([payload]);
+        if (error) throw error;
+        if (selectedProject) fetchBudgets(selectedProject.id);
+      }
+      setBudgetModal(false);
+      setEditingBudget(null);
+    } catch (err) {
+      message.error('Failed to save budget.');
+      console.error(err);
+    }
+  };
+
+  // Milestone CRUD
+  const handleAddMilestone = () => { setEditingMilestone(null); setMilestoneModal(true); };
+  const handleEditMilestone = (item) => { setEditingMilestone(item); setMilestoneModal(true); };
+  const handleDeleteMilestone = async (id) => {
+    try {
+      const { error } = await supabase
+        .from('project_milestone')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      if (selectedProject) fetchMilestones(selectedProject.id);
+    } catch (err) {
+      message.error('Failed to delete milestone.');
+      console.error(err);
+    }
+  };
+  const handleSubmitMilestone = async (values) => {
+    try {
+      if (editingMilestone) {
+        if (editingMilestone.created_by !== userId) return;
+        const payload = {
+          description: values.description,
+          status: values.status,
+          start_date: values.start_date?.format('YYYY-MM-DD'),
+          end_date: values.end_date?.format('YYYY-MM-DD'),
+          expected_completion: values.expected_completion?.format('YYYY-MM-DD'),
+          remarks: values.remarks
+        };
+        const { error } = await supabase
+          .from('project_milestone')
+          .update(payload)
+          .eq('id', editingMilestone.id);
+        if (error) throw error;
+        if (selectedProject) fetchMilestones(selectedProject.id);
+      } else {
+        const payload = {
+          description: values.description,
+          status: values.status,
+          start_date: values.start_date?.format('YYYY-MM-DD'),
+          end_date: values.end_date?.format('YYYY-MM-DD'),
+          expected_completion: values.expected_completion?.format('YYYY-MM-DD'),
+          remarks: values.remarks,
+          project_id: selectedProject.id,
+          created_by: userId
+        };
+        const { error } = await supabase
+          .from('project_milestone')
+          .insert([payload]);
+        if (error) throw error;
+        if (selectedProject) fetchMilestones(selectedProject.id);
+      }
+      setMilestoneModal(false);
+      setEditingMilestone(null);
+    } catch (err) {
+      message.error('Failed to save milestone.');
+      console.error(err);
     }
   };
 
@@ -387,251 +500,6 @@ const Projects = () => {
     p.title.toLowerCase().includes(search.toLowerCase()) ||
     p.description.toLowerCase().includes(search.toLowerCase())
   );
-
-  // Open modal for new or edit
-  const openModal = async (project = null) => {
-    setIsEdit(!!project);
-    setIsModalOpen(true);
-    if (project) {
-      // Fetch team members for this project
-      const teamMembers = await fetchProjectTeam(project.id);
-      const teamMemberIds = teamMembers.map(member => member.id);
-      
-      form.setFieldsValue({
-        ...project,
-        expected_completion: project.expected_completion ? moment(project.expected_completion) : null,
-        lead: project.lead_id,
-        team: teamMemberIds
-      });
-    } else {
-      form.resetFields();
-    }
-  };
-
-  // Handle create/edit project (Supabase)
-  const handleOk = async () => {
-    try {
-      const values = await form.validateFields();
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      const payload = {
-        title: values.title,
-        description: values.description,
-        expected_completion: values.expected_completion?.format('YYYY-MM-DD'),
-        lead_id: values.lead,
-        created_by: user?.id
-      };
-
-      if (isEdit && selectedProject) {
-        // Update project
-        const { error: projectError } = await supabase
-          .from('projects')
-          .update(payload)
-          .eq('id', selectedProject.id);
-        
-        if (projectError) {
-          console.error('Error updating project:', projectError);
-          return;
-        }
-
-        // Update team members
-        const { error: teamDeleteError } = await supabase
-          .from('project_team')
-          .delete()
-          .eq('project_id', selectedProject.id);
-        
-        if (teamDeleteError) {
-          console.error('Error deleting old team members:', teamDeleteError);
-        }
-
-        // Insert new team members
-        if (values.team && values.team.length > 0) {
-          const teamPayload = values.team.map(memberId => ({
-            project_id: selectedProject.id,
-            member_id: memberId
-          }));
-          
-          const { error: teamInsertError } = await supabase
-            .from('project_team')
-            .insert(teamPayload);
-          
-          if (teamInsertError) {
-            console.error('Error inserting team members:', teamInsertError);
-          }
-        }
-        
-        await fetchProjects();
-        setIsModalOpen(false);
-      } else {
-        // Insert new project
-        const { data: newProject, error: projectError } = await supabase
-          .from('projects')
-          .insert([payload])
-          .select()
-          .single();
-        
-        if (projectError) {
-          console.error('Error creating project:', projectError);
-          return;
-        }
-
-        // Insert team members for new project
-        if (newProject && values.team && values.team.length > 0) {
-          const teamPayload = values.team.map(memberId => ({
-            project_id: newProject.id,
-            member_id: memberId
-          }));
-          
-          const { error: teamInsertError } = await supabase
-            .from('project_team')
-            .insert(teamPayload);
-          
-          if (teamInsertError) {
-            console.error('Error inserting team members:', teamInsertError);
-          }
-        }
-        
-        await fetchProjects();
-        setIsModalOpen(false);
-      }
-    } catch (error) {
-      console.error('Error in handleOk:', error);
-    }
-  };
-
-  // Handle delete project
-  const handleDelete = async (id) => {
-    // Delete team members first (cascade should handle this, but being explicit)
-    await supabase
-      .from('project_team')
-      .delete()
-      .eq('project_id', id);
-    
-    // Delete project
-    const { error } = await supabase
-      .from('projects')
-      .delete()
-      .eq('id', id);
-    
-    if (!error) {
-      fetchProjects();
-    }
-  };
-
-  // Budget CRUD
-  const handleAddBudget = () => { setEditingBudget(null); setBudgetModal(true); };
-  const handleEditBudget = (item) => { setEditingBudget(item); setBudgetModal(true); };
-  const handleDeleteBudget = async (id) => {
-    const { error } = await supabase
-      .from('project_budget')
-      .delete()
-      .eq('id', id);
-    if (!error && selectedProject) fetchBudgets(selectedProject.id);
-  };
-  const handleSubmitBudget = async (values) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    console.log('Budget form values:', values); // Debug log
-    console.log('Selected project:', selectedProject); // Debug log
-    console.log('Current user:', user); // Debug log
-    
-    if (editingBudget) {
-      // Update existing budget
-      const payload = {
-        description: values.description,
-        planned_amount: Number(values.planned_amount),
-        actual_amount: Number(values.actual_amount),
-        remarks: values.remarks
-      };
-      
-      console.log('Update budget payload:', payload); // Debug log
-      
-      const { error } = await supabase
-        .from('project_budget')
-        .update(payload)
-        .eq('id', editingBudget.id);
-      if (!error && selectedProject) fetchBudgets(selectedProject.id);
-    } else {
-      // Insert new budget
-      const payload = {
-        description: values.description,
-        planned_amount: Number(values.planned_amount),
-        actual_amount: Number(values.actual_amount),
-        remarks: values.remarks,
-        project_id: selectedProject.id
-      };
-      
-      console.log('Insert budget payload:', payload); // Debug log
-      
-      const { error } = await supabase
-        .from('project_budget')
-        .insert([payload]);
-      
-      if (error) {
-        console.error('Budget insert error:', error); // Debug log
-      } else {
-        console.log('Budget inserted successfully'); // Debug log
-      }
-      
-      if (!error && selectedProject) fetchBudgets(selectedProject.id);
-    }
-    setBudgetModal(false);
-    setEditingBudget(null);
-  };
-
-  // Milestone CRUD
-  const handleAddMilestone = () => { setEditingMilestone(null); setMilestoneModal(true); };
-  const handleEditMilestone = (item) => { setEditingMilestone(item); setMilestoneModal(true); };
-  const handleDeleteMilestone = async (id) => {
-    const { error } = await supabase
-      .from('project_milestone')
-      .delete()
-      .eq('id', id);
-    if (!error && selectedProject) fetchMilestones(selectedProject.id);
-  };
-  const handleSubmitMilestone = async (values) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (editingMilestone) {
-      // Update existing milestone
-      const payload = {
-        description: values.description,
-        status: values.status,
-        start_date: values.start_date?.format('YYYY-MM-DD'),
-        end_date: values.end_date?.format('YYYY-MM-DD'),
-        expected_completion: values.expected_completion?.format('YYYY-MM-DD'),
-        remarks: values.remarks
-      };
-      
-      const { error } = await supabase
-        .from('project_milestone')
-        .update(payload)
-        .eq('id', editingMilestone.id);
-      if (!error && selectedProject) fetchMilestones(selectedProject.id);
-    } else {
-      // Insert new milestone
-      const payload = {
-        description: values.description,
-        status: values.status,
-        start_date: values.start_date?.format('YYYY-MM-DD'),
-        end_date: values.end_date?.format('YYYY-MM-DD'),
-        expected_completion: values.expected_completion?.format('YYYY-MM-DD'),
-        remarks: values.remarks,
-        project_id: selectedProject.id,
-        created_by: user?.id
-      };
-      
-      const { error } = await supabase
-        .from('project_milestone')
-        .insert([payload]);
-      if (!error && selectedProject) fetchMilestones(selectedProject.id);
-    }
-    setMilestoneModal(false);
-    setEditingMilestone(null);
-  };
-
-  const currentBudget = budgets;
-  const currentMilestones = milestones;
 
   return (
     <Row gutter={24} style={{ minHeight: '80vh' }}>
@@ -645,9 +513,6 @@ const Projects = () => {
             onChange={e => setSearch(e.target.value)}
             style={{ marginRight: 8 }}
           />
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => openModal()}>
-            Project
-          </Button>
         </div>
         <List
           dataSource={filteredProjects}
@@ -669,10 +534,6 @@ const Projects = () => {
                     <Tag color="green" icon={<TeamOutlined />}>{project.team_count} members</Tag>
                   </div>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <Button icon={<EditOutlined />} size="small" onClick={e => { e.stopPropagation(); openModal(project); }} />
-                  <Button icon={<DeleteOutlined />} size="small" danger onClick={e => { e.stopPropagation(); handleDelete(project.id); }} />
-                </div>
               </div>
             </Card>
           )}
@@ -686,16 +547,18 @@ const Projects = () => {
             <TeamAvatars team={selectedProjectTeam} />
             <BudgetMilestoneWrapper>
               <BudgetSection
-                budget={currentBudget}
+                budget={budgets}
                 onAdd={handleAddBudget}
                 onEdit={handleEditBudget}
                 onDelete={handleDeleteBudget}
+                userId={userId}
               />
               <MilestoneSection
-                milestones={currentMilestones}
+                milestones={milestones}
                 onAdd={handleAddMilestone}
                 onEdit={handleEditMilestone}
                 onDelete={handleDeleteMilestone}
+                userId={userId}
               />
             </BudgetMilestoneWrapper>
             <BudgetForm
@@ -713,47 +576,8 @@ const Projects = () => {
           </>
         )}
       </Col>
-
-      {/* Project Create/Edit Modal */}
-      <Modal
-        title={isEdit ? 'Edit Project' : 'Create Project'}
-        open={isModalOpen}
-        onOk={handleOk}
-        onCancel={() => setIsModalOpen(false)}
-        okText={isEdit ? 'Update' : 'Create'}
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item name="title" label="Title" rules={[{ required: true, message: 'Please enter a title' }]}> 
-            <Input />
-          </Form.Item>
-          <Form.Item name="description" label="Description" rules={[{ required: true, message: 'Please enter a description' }]}> 
-            <Input.TextArea rows={2} />
-          </Form.Item>
-          <Form.Item name="expected_completion" label="Expected Completion Date" rules={[{ required: true, message: 'Please select a date' }]}> 
-            <DatePicker style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item name="lead" label="Project Lead" rules={[{ required: true, message: 'Please select a project lead' }]}> 
-            <Select placeholder="Select project lead" style={{ width: '100%' }}>
-              {members.map(member => (
-                <Select.Option key={member.id} value={member.id}>
-                  {member.name} ({member.email})
-                </Select.Option>
-              ))}
-            </Select>
-          </Form.Item>
-          <Form.Item name="team" label="Team Members" rules={[{ required: true, message: 'Please select at least one team member' }]}> 
-            <Select mode="multiple" placeholder="Select team members" style={{ width: '100%' }}>
-              {members.map(member => (
-                <Select.Option key={member.id} value={member.id}>
-                  {member.name} ({member.email})
-                </Select.Option>
-              ))}
-            </Select>
-          </Form.Item>
-        </Form>
-      </Modal>
     </Row>
   );
 };
 
-export default Projects;
+export default EmployeeProjects;
