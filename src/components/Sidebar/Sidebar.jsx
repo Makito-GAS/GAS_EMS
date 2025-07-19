@@ -69,6 +69,7 @@ const Sidebar = ({ children }) => {
               text={t('chat')}
               path="/chat"
             />
+           
           </ul>
 
         
