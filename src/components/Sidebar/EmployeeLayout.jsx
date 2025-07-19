@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Sidebar, { SidebarItem } from './Sidebar';
 import { Outlet } from 'react-router-dom';
-import { FaHome, FaTasks, FaCalendarAlt, FaUser, FaCog, FaFileUpload, FaBars, FaTimes } from 'react-icons/fa';
+import { FaHome, FaTasks, FaCalendarAlt, FaUser, FaCog, FaFileUpload, FaBars, FaTimes, FaProjectDiagram  } from 'react-icons/fa';
 import { useLanguage } from '../../context/LanguageContext';
 
 const EmployeeLayout = () => {
@@ -63,6 +63,12 @@ const EmployeeLayout = () => {
             path="/employee/submit-documents"
             onClick={() => setMobileMenuOpen(false)}
           />
+
+              <SidebarItem 
+              icon={<FaProjectDiagram className="w-6 h-6" />}
+              text={t('projects')}
+              path="/employee/eprojects"
+            />
         </Sidebar>
       </div>
 
