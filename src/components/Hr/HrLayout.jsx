@@ -26,7 +26,7 @@ const HrLayout = () => {
       `}>
         <Sidebar>
           <SidebarItem icon={<FaHome className="w-6 h-6" />} text="Dashboard" path="/hr/dashboard" onClick={() => setMobileMenuOpen(false)} />
-          <SidebarItem icon={<FaUser className="w-6 h-6" />} text="Employee" path="/hr/employee" onClick={() => setMobileMenuOpen(false)} />
+          <SidebarItem icon={<FaUser className="w-6 h-6" />} text="Employees" path="/hr/employees" onClick={() => setMobileMenuOpen(false)} />
           <SidebarItem icon={<FaUserPlus className="w-6 h-6" />} text="Recruitment" path="/hr/recruitment" onClick={() => setMobileMenuOpen(false)} />
           <SidebarItem icon={<FaMoneyCheckAlt className="w-6 h-6" />} text="Payroll" path="/hr/payroll" onClick={() => setMobileMenuOpen(false)} />
           <SidebarItem icon={<FaCalendarAlt className="w-6 h-6" />} text="Schedule" path="/hr/schedule" onClick={() => setMobileMenuOpen(false)} />
