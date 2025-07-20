@@ -34,6 +34,7 @@ import OnboardingChecklist from './components/Onboarding/OnboardingChecklist';
 import DocumentUploader from './components/Onboarding/DocumentUploader';
 import WelcomeTasks from './components/Onboarding/WelcomeTasks';
 import HrLayout from './components/Hr/HrLayout';
+import Employees from './components/Hr/Employees';
 
 function App() {
   return (
@@ -104,6 +105,7 @@ function App() {
                   <Route path="onboarding-checklist" element={<OnboardingChecklist />} />
                   <Route path="document-uploader" element={<DocumentUploader />} />
                   <Route path="welcome-tasks" element={<WelcomeTasks />} />
+                  <Route path="employees" element={<Employees />} />
                   <Route path="*" element={<Navigate to="/hr/dashboard" replace />} />
                 </Route>
 
