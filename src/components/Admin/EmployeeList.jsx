@@ -194,7 +194,7 @@ const EmployeeList = () => {
     <div className="flex min-h-screen bg-gray-50  dark:bg-gray-900">
       
 
-      <div className="ml-30 flex-1 p-8 overflow-y-auto h-screen">
+      <div className="ml-30 flex-1 p-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">Employee Management</h1>
           <p className="text-gray-600 dark:text-white">View and manage all employees in the system</p>
