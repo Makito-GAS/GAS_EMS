@@ -7,7 +7,7 @@ const HrLayout = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
       {/* Mobile menu button */}
       <div className="lg:hidden fixed top-4 left-4 z-50">
         <button
@@ -21,20 +21,22 @@ const HrLayout = () => {
       {/* Sidebar */}
       <div className={`
         fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 ease-in-out
-        lg:relative lg:translate-x-0
+        lg:relative lg:translate-x-0 flex flex-col h-full
         ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
-        <Sidebar>
-          <SidebarItem icon={<FaHome className="w-6 h-6" />} text="Dashboard" path="/hr/dashboard" onClick={() => setMobileMenuOpen(false)} />
-          <SidebarItem icon={<FaUser className="w-6 h-6" />} text="Employees" path="/hr/employees" onClick={() => setMobileMenuOpen(false)} />
-          <SidebarItem icon={<FaUserPlus className="w-6 h-6" />} text="Recruitment" path="/hr/recruitment" onClick={() => setMobileMenuOpen(false)} />
-          <SidebarItem icon={<FaMoneyCheckAlt className="w-6 h-6" />} text="Payroll" path="/hr/payroll" onClick={() => setMobileMenuOpen(false)} />
-          <SidebarItem icon={<FaCalendarAlt className="w-6 h-6" />} text="Schedule" path="/hr/schedule" onClick={() => setMobileMenuOpen(false)} />
-          <SidebarItem icon={<FaChartBar className="w-6 h-6" />} text="Reports" path="/hr/reports" onClick={() => setMobileMenuOpen(false)} />
-          <SidebarItem icon={<FaSitemap className="w-6 h-6" />} text="Structure" path="/hr/structure" onClick={() => setMobileMenuOpen(false)} />
-          <SidebarItem icon={<FaCog className="w-6 h-6" />} text="Settings" path="/hr/settings" onClick={() => setMobileMenuOpen(false)} />
-          <SidebarItem icon={<FaQuestionCircle className="w-6 h-6" />} text="Help" path="/hr/help" onClick={() => setMobileMenuOpen(false)} />
-        </Sidebar>
+        <div className="flex-1 overflow-y-auto">
+          <Sidebar>
+            <SidebarItem icon={<FaHome className="w-6 h-6" />} text="Dashboard" path="/hr/dashboard" onClick={() => setMobileMenuOpen(false)} />
+            <SidebarItem icon={<FaUser className="w-6 h-6" />} text="Employees" path="/hr/employees" onClick={() => setMobileMenuOpen(false)} />
+            <SidebarItem icon={<FaUserPlus className="w-6 h-6" />} text="Recruitment" path="/hr/recruitment" onClick={() => setMobileMenuOpen(false)} />
+            <SidebarItem icon={<FaMoneyCheckAlt className="w-6 h-6" />} text="Payroll" path="/hr/payroll" onClick={() => setMobileMenuOpen(false)} />
+            <SidebarItem icon={<FaCalendarAlt className="w-6 h-6" />} text="Schedule" path="/hr/schedule" onClick={() => setMobileMenuOpen(false)} />
+            <SidebarItem icon={<FaChartBar className="w-6 h-6" />} text="Reports" path="/hr/reports" onClick={() => setMobileMenuOpen(false)} />
+            <SidebarItem icon={<FaSitemap className="w-6 h-6" />} text="Structure" path="/hr/structure" onClick={() => setMobileMenuOpen(false)} />
+            <SidebarItem icon={<FaCog className="w-6 h-6" />} text="Settings" path="/hr/settings" onClick={() => setMobileMenuOpen(false)} />
+            <SidebarItem icon={<FaQuestionCircle className="w-6 h-6" />} text="Help" path="/hr/help" onClick={() => setMobileMenuOpen(false)} />
+          </Sidebar>
+        </div>
       </div>
       {/* Overlay for mobile */}
       {mobileMenuOpen && (
