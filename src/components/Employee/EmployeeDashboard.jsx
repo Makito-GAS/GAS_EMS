@@ -316,6 +316,8 @@ const EmployeeDashboard = () => {
         checkOut: currentTime.toLocaleTimeString()
       }));
       setShowAttendanceModal(false);
+
+      toast.success('Check-out successful! Have a great rest of your day!');
     } catch (error) {
       console.error('Error marking checkout:', error);
       setAttendanceError('Failed to mark checkout. Please try again.');

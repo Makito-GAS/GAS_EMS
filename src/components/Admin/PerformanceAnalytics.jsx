@@ -56,6 +56,8 @@ const PerformanceAnalytics = () => {
   const [insights, setInsights] = useState([]);
   // State for all departments (for dropdown)
   const [allDepartments, setAllDepartments] = useState([]);
+  // Add state for all employees
+  const [allEmployees, setAllEmployees] = useState([]);
 
   useEffect(() => {
     fetchAnalyticsData();
@@ -74,6 +76,19 @@ const PerformanceAnalytics = () => {
       }
     };
     fetchDepartments();
+  }, []);
+
+  // Fetch all employees on mount
+  useEffect(() => {
+    const fetchAllEmployees = async () => {
+      const { data, error } = await supabase
+        .from('member')
+        .select('id, name');
+      if (!error && data) {
+        setAllEmployees(data);
+      }
+    };
+    fetchAllEmployees();
   }, []);
 
   // Helper to get unique department names from reports
@@ -116,6 +131,15 @@ const PerformanceAnalytics = () => {
 
       if (weeklyReportsError) throw weeklyReportsError;
 
+      // Fetch attendance for all employees in the period
+      let attendanceStart = startOfQuarter;
+      if (dateRange.start) attendanceStart = new Date(dateRange.start);
+      const { data: attendanceRecords, error: attendanceError } = await supabase
+        .from('attendance')
+        .select('*')
+        .gte('date', attendanceStart.toISOString());
+      if (attendanceError) throw attendanceError;
+
       // Initialize default data for charts
       const defaultTaskStatusData = {
         labels: ['On Track', 'At Risk'],
@@ -157,18 +181,7 @@ const PerformanceAnalytics = () => {
         },
         hours: {
           labels: [],
-          datasets: [
-            {
-              label: 'Planned Hours',
-              data: [],
-              backgroundColor: 'rgba(59, 130, 246, 0.6)',
-            },
-            {
-              label: 'Actual Hours',
-              data: [],
-              backgroundColor: 'rgba(16, 185, 129, 0.6)',
-            }
-          ]
+          datasets: []
         }
       };
 
@@ -176,7 +189,9 @@ const PerformanceAnalytics = () => {
       const taskStatusData = dailyReports?.length > 0 ? processTaskStatusData(dailyReports) : defaultTaskStatusData;
       const departmentPerformanceData = dailyReports?.length > 0 ? processDepartmentData(dailyReports) : defaultDepartmentData;
       const employeeGrowthData = dailyReports?.length > 0 ? processEmployeeGrowth(dailyReports) : [];
-      const weeklyReportAnalytics = weeklyReports?.length > 0 ? processWeeklyReportData(weeklyReports) : defaultWeeklyReportData;
+      const weeklyReportAnalytics = (weeklyReports?.length > 0 || attendanceRecords?.length > 0)
+        ? processWeeklyReportData(weeklyReports, attendanceRecords)
+        : defaultWeeklyReportData;
 
       setWeeklyData(taskStatusData);
       setDepartmentData(departmentPerformanceData);
@@ -313,7 +328,9 @@ const PerformanceAnalytics = () => {
     );
   };
 
-  const processWeeklyReportData = (reports) => {
+  // Replace the processWeeklyReportData function and related hours logic
+  const processWeeklyReportData = (reports, attendanceRecords) => {
+    // OKR Status as before
     const okrStatusData = {
       labels: ['On Track', 'At Risk'],
       datasets: [{
@@ -328,20 +345,101 @@ const PerformanceAnalytics = () => {
       }]
     };
 
-    const hoursData = {
-      labels: reports.map(r => r.full_name),
-      datasets: [
-        {
-          label: 'Planned Hours',
-          data: reports.map(r => r.planned_hours),
-          backgroundColor: 'rgba(59, 130, 246, 0.6)',
-        },
-        {
-          label: 'Actual Hours',
-          data: reports.map(r => r.actual_hours),
-          backgroundColor: 'rgba(16, 185, 129, 0.6)',
+    // Calculate hours from attendance
+    // Group attendance by employee and by week
+    const employeeWeekHours = {};
+    const weekLabels = [];
+    // Get all unique employees from attendance
+    const employees = Array.from(new Set(attendanceRecords.map(a => a.member_id)));
+
+    // Get the last 4 full weeks (Monday to Sunday)
+    const weeks = [];
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    // Find last Monday
+    const lastMonday = new Date(now);
+    lastMonday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+    for (let i = 3; i >= 0; i--) {
+      const weekStart = new Date(lastMonday);
+      weekStart.setDate(lastMonday.getDate() - i * 7);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+      weeks.push({
+        start: new Date(weekStart),
+        end: new Date(weekEnd),
+        label: `${weekStart.toLocaleDateString()} - ${weekEnd.toLocaleDateString()}`
+      });
+      weekLabels.push(`${weekStart.toLocaleDateString()} - ${weekEnd.toLocaleDateString()}`);
+    }
+
+    // Helper to calculate hours for a single day
+    function calculateWorkHours(checkIn, checkOut, date) {
+      if (!checkIn) return 0;
+      const workStart = new Date(date);
+      workStart.setHours(8, 0, 0, 0);
+      const workEnd = new Date(date);
+      workEnd.setHours(17, 0, 0, 0);
+      let inTime = new Date(checkIn);
+      let outTime = checkOut ? new Date(checkOut) : new Date();
+      // If check-in before 9:00, treat as 8:00
+      if (inTime.getHours() < 9) {
+        inTime.setHours(8, 0, 0, 0);
+      }
+      // If check-in after 17:00, 0 hours
+      if (inTime >= workEnd) return 0;
+      // If check-in before workStart, set to workStart
+      if (inTime < workStart) inTime = new Date(workStart);
+      // If check-out is after 17:00, treat as 17:00
+      if (outTime > workEnd) outTime = new Date(workEnd);
+      // If check-out is before check-in, 0 hours
+      if (outTime <= inTime) return 0;
+      // If check-out is missing and now is before 17:00, use now
+      if (!checkOut && new Date() < workEnd) {
+        outTime = new Date();
+        if (outTime > workEnd) outTime = new Date(workEnd);
+      }
+      // Only count time between 8:00 and 17:00
+      if (inTime < workStart) inTime = new Date(workStart);
+      if (outTime > workEnd) outTime = new Date(workEnd);
+      const hours = (outTime - inTime) / (1000 * 60 * 60);
+      return Math.max(0, Math.min(hours, 9));
+    }
+
+    // Build hours data for each employee for each week
+    // Build a map of member_id to name from allEmployees
+    const allEmployeeNames = {};
+    allEmployees.forEach(e => { allEmployeeNames[e.id] = e.name; });
+    const employeeNames = { ...allEmployeeNames };
+    // Overwrite with names from reports if available
+    reports.forEach(r => { if (r.member_id && r.full_name) employeeNames[r.member_id] = r.full_name; });
+    employees.forEach(empId => {
+      employeeWeekHours[empId] = Array(weeks.length).fill(0);
+      const empAttendance = attendanceRecords.filter(a => a.member_id === empId);
+      weeks.forEach((week, wIdx) => {
+        // For each day in the week
+        for (let d = 0; d < 7; d++) {
+          const day = new Date(week.start);
+          day.setDate(day.getDate() + d);
+          const dayStr = day.toISOString().split('T')[0];
+          const record = empAttendance.find(a => a.date && a.date.startsWith(dayStr));
+          if (record) {
+            employeeWeekHours[empId][wIdx] += calculateWorkHours(record.check_in, record.check_out, day);
+          }
         }
-      ]
+      });
+    });
+
+    // Prepare chart data: labels = employee names, datasets = hours per week
+    const labels = employees.map(empId => employeeNames[empId] || empId);
+    const datasets = weeks.map((week, wIdx) => ({
+      label: week.label,
+      data: employees.map(empId => parseFloat(employeeWeekHours[empId][wIdx].toFixed(2))),
+      backgroundColor: `rgba(${59 + wIdx * 30}, ${130 + wIdx * 10}, 246, 0.6)`
+    }));
+
+    const hoursData = {
+      labels,
+      datasets
     };
 
     return {
