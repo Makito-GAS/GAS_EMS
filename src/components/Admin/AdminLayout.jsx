@@ -10,7 +10,7 @@ const AdminLayout = () => {
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
       <AdminSidebar expanded={expanded} setExpanded={setExpanded} />
-      <div className={`transition-all duration-300 flex-1 p-4 sm:p-8 overflow-y-auto h-screen ${mainMargin}`}>
+      <div className={`transition-all duration-300 flex-1 p-4 sm:p-8 ${mainMargin}`}>
         <Outlet />
       </div>
     </div>
