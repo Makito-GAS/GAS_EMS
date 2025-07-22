@@ -35,6 +35,7 @@ import DocumentUploader from './components/Onboarding/DocumentUploader';
 import WelcomeTasks from './components/Onboarding/WelcomeTasks';
 import HrLayout from './components/Hr/HrLayout';
 import Employees from './components/Hr/Employees';
+import JobBoard from './components/Employee/JobBoard';
 
 function App() {
   return (
@@ -65,6 +66,7 @@ function App() {
                   <Route path="chat" element={<Chat />} />
                   <Route path="eprojects" element={<EmployeeProjects />} />
                   <Route path="submit-documents" element={<EmployeeDocumentSubmission />} />
+                  <Route path="job-board" element={<JobBoard />} />
                   <Route path="*" element={<Navigate to="/employee/dashboard" replace />} />
                 </Route>
 
