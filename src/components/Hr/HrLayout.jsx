@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import Sidebar, { SidebarItem } from '../Sidebar/Sidebar';
-import { Outlet } from 'react-router-dom';
+import { Outlet, Routes, Route } from 'react-router-dom';
 import { FaHome, FaUser, FaUserPlus, FaMoneyCheckAlt, FaCalendarAlt, FaChartBar, FaSitemap, FaCog, FaQuestionCircle } from 'react-icons/fa';
+import ScheduleWidget from './ScheduleWidget';
 
 const HrLayout = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -47,10 +48,14 @@ const HrLayout = () => {
       )}
       {/* Main content */}
       <div className="flex-1 lg:ml-64 h-screen overflow-y-auto p-4 lg:p-8">
+        <Routes>
+          <Route path="/hr/schedule" element={<ScheduleWidget events={[]} onDateClick={(info) => alert(`Date clicked: ${info.dateStr}`)} />} />
+          {/* Other routes */}
+        </Routes>
         <Outlet />
       </div>
     </div>
   );
 };
 
-export default HrLayout; 
+export default HrLayout;
