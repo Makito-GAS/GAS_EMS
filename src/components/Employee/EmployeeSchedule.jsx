@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { FaCalendarAlt } from 'react-icons/fa';
-import Calendar from "react-calendar";
-import "react-calendar/dist/Calendar.css";
+import FullCalendar from '@fullcalendar/react';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import interactionPlugin from '@fullcalendar/interaction';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import supabase from '../../../supabase-client';
@@ -9,11 +10,11 @@ import supabase from '../../../supabase-client';
 const EmployeeSchedule = () => {
   const { t } = useLanguage();
   const { session } = useAuth();
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [schedules, setSchedules] = useState({});
+  const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newSchedule, setNewSchedule] = useState({
+    date: '',
     time: '',
     title: '',
     description: ''
@@ -33,22 +34,16 @@ const EmployeeSchedule = () => {
 
       if (error) throw error;
 
-      // Group schedules by date
-      const groupedSchedules = data.reduce((acc, schedule) => {
-        const date = schedule.date;
-        if (!acc[date]) {
-          acc[date] = [];
-        }
-        acc[date].push({
-          id: schedule.id,
-          time: schedule.time,
-          title: schedule.title,
+      const formattedEvents = data.map(schedule => ({
+        id: schedule.id,
+        title: schedule.title,
+        start: `${schedule.date}T${schedule.time}`,
+        extendedProps: {
           description: schedule.description
-        });
-        return acc;
-      }, {});
+        }
+      }));
 
-      setSchedules(groupedSchedules);
+      setEvents(formattedEvents);
     } catch (error) {
       console.error('Error fetching schedules:', error);
     } finally {
@@ -56,12 +51,9 @@ const EmployeeSchedule = () => {
     }
   };
 
-  const formatDate = (date) => {
-    return date.toISOString().split('T')[0];
-  };
-
-  const handleDateClick = (date) => {
-    setSelectedDate(date);
+  const handleDateClick = (info) => {
+    setNewSchedule(prev => ({ ...prev, date: info.dateStr }));
+    setShowAddModal(true);
   };
 
   const handleAddSchedule = async () => {
@@ -71,7 +63,7 @@ const EmployeeSchedule = () => {
         .insert([
           {
             member_id: session?.user?.id,
-            date: formatDate(selectedDate),
+            date: newSchedule.date,
             time: newSchedule.time,
             title: newSchedule.title,
             description: newSchedule.description
@@ -82,51 +74,31 @@ const EmployeeSchedule = () => {
 
       if (error) throw error;
 
-      // Update local state
-      setSchedules(prev => ({
-        ...prev,
-        [formatDate(selectedDate)]: [
-          ...(prev[formatDate(selectedDate)] || []),
-          {
-            id: data.id,
-            time: newSchedule.time,
-            title: newSchedule.title,
-            description: newSchedule.description
-          }
-        ]
-      }));
+      // Refresh the calendar data after adding a new schedule
+      await fetchSchedules();
 
-      setNewSchedule({ time: '', title: '', description: '' });
+      setNewSchedule({ date: '', time: '', title: '', description: '' });
       setShowAddModal(false);
     } catch (error) {
       console.error('Error adding schedule:', error);
     }
   };
 
-  const handleDeleteSchedule = async (dateStr, index) => {
+  const handleEventClick = async (info) => {
+    const eventId = info.event.id;
+
     try {
-      const scheduleToDelete = schedules[dateStr][index];
-      
       const { error } = await supabase
         .from('schedules')
         .delete()
-        .eq('id', scheduleToDelete.id);
+        .eq('id', eventId);
 
       if (error) throw error;
 
-      // Update local state
-      setSchedules(prev => ({
-        ...prev,
-        [dateStr]: prev[dateStr].filter((_, i) => i !== index)
-      }));
+      setEvents(prev => prev.filter(event => event.id !== eventId));
     } catch (error) {
       console.error('Error deleting schedule:', error);
     }
-  };
-
-  const tileClassName = ({ date }) => {
-    const dateStr = formatDate(date);
-    return schedules[dateStr] ? 'has-schedule' : null;
   };
 
   return (
@@ -145,87 +117,25 @@ const EmployeeSchedule = () => {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Calendar */}
-        <div className="lg:col-span-1">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-            <Calendar
-              onChange={handleDateClick}
-              value={selectedDate}
-              tileClassName={tileClassName}
-              className="w-full border-none custom-calendar"
-            />
-          </div>
-        </div>
-
-        {/* Schedule List */}
-        <div className="lg:col-span-2">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-semibold text-gray-800 dark:text-white">
-                {selectedDate.toLocaleDateString(undefined, { 
-                  weekday: 'long', 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
-                })}
-              </h2>
-            </div>
-            
-            {loading ? (
-              <div className="flex justify-center items-center h-32">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {schedules[formatDate(selectedDate)]?.map((schedule, index) => (
-                  <div 
-                    key={schedule.id} 
-                    className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 transition-all hover:shadow-md"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex items-start space-x-4">
-                        <div className="bg-blue-100 dark:bg-blue-900 p-3 rounded-lg">
-                          <FaCalendarAlt className="w-5 h-5 text-blue-500 dark:text-blue-300" />
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
-                            {schedule.title}
-                          </h3>
-                          <p className="text-gray-600 dark:text-gray-300 mt-1">
-                            {schedule.description}
-                          </p>
-                          <div className="flex items-center mt-2 text-sm text-gray-500 dark:text-gray-400">
-                            <FaCalendarAlt className="w-4 h-4 mr-1" />
-                            {schedule.time}
-                          </div>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleDeleteSchedule(formatDate(selectedDate), index)}
-                        className="text-red-500 hover:text-red-600 transition-colors"
-                      >
-                        <FaCalendarAlt className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </div>
-                )) || (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500 dark:text-gray-400">
-                      {t('noSchedulesForThisDate')}
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+        <FullCalendar
+          plugins={[dayGridPlugin, interactionPlugin]}
+          initialView="dayGridMonth"
+          events={events}
+          dateClick={handleDateClick}
+          eventClick={handleEventClick}
+          headerToolbar={{
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,dayGridWeek,dayGridDay'
+          }}
+          height="auto"
+        />
       </div>
 
-      {/* Add Schedule Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100]">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md ml-64">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md">
             <h2 className="text-2xl font-semibold text-gray-800 dark:text-white mb-6">
               {t('addNewSchedule')}
             </h2>
@@ -283,62 +193,8 @@ const EmployeeSchedule = () => {
           </div>
         </div>
       )}
-
-      <style jsx>{`
-        .custom-calendar {
-          width: 100%;
-          border: none;
-          background: transparent;
-        }
-        
-        .custom-calendar .react-calendar__tile {
-          padding: 1em 0.5em;
-          border-radius: 0.5rem;
-          margin: 0.2rem;
-        }
-        
-        .custom-calendar .react-calendar__tile--now {
-          background: #EBF5FF;
-          color: #2563EB;
-        }
-        
-        .custom-calendar .react-calendar__tile--active {
-          background: #2563EB;
-          color: white;
-        }
-        
-        .custom-calendar .react-calendar__tile.has-schedule {
-          position: relative;
-        }
-        
-        .custom-calendar .react-calendar__tile.has-schedule::after {
-          content: '';
-          position: absolute;
-          bottom: 4px;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 4px;
-          height: 4px;
-          background: #2563EB;
-          border-radius: 50%;
-        }
-        
-        .dark .custom-calendar .react-calendar__tile--now {
-          background: #1E3A8A;
-          color: #60A5FA;
-        }
-        
-        .dark .custom-calendar .react-calendar__tile--active {
-          background: #2563EB;
-          color: white;
-        }
-        
-        .dark .custom-calendar .react-calendar__tile.has-schedule::after {
-          background: #60A5FA;
-        }
-      `}</style>
     </div>
   );
 };
 
-export default EmployeeSchedule; 
+export default EmployeeSchedule;
