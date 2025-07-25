@@ -36,6 +36,8 @@ import WelcomeTasks from './components/Onboarding/WelcomeTasks';
 import HrLayout from './components/Hr/HrLayout';
 import Employees from './components/Hr/Employees';
 import JobBoard from './components/Employee/JobBoard';
+import ScheduleWidget from './components/Hr/ScheduleWidget'; // Import the ScheduleWidget component
+
 
 function App() {
   return (
@@ -108,6 +110,7 @@ function App() {
                   <Route path="document-uploader" element={<DocumentUploader />} />
                   <Route path="welcome-tasks" element={<WelcomeTasks />} />
                   <Route path="employees" element={<Employees />} />
+                  <Route path="schedule" element={<ScheduleWidget events={[]} onDateClick={(info) => alert(`Date clicked: ${info.dateStr}`)} />} />
                   <Route path="*" element={<Navigate to="/hr/dashboard" replace />} />
                 </Route>
 
