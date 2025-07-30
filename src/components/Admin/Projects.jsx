@@ -475,19 +475,26 @@ const Projects = () => {
           return;
         }
 
-        // Insert team members for new project
-        if (newProject && values.team && values.team.length > 0) {
-          const teamPayload = values.team.map(memberId => ({
-            project_id: newProject.id,
-            member_id: memberId
-          }));
-          
-          const { error: teamInsertError } = await supabase
-            .from('project_team')
-            .insert(teamPayload);
-          
-          if (teamInsertError) {
-            console.error('Error inserting team members:', teamInsertError);
+        // Insert team members for new project (ensure lead is included)
+        if (newProject) {
+          let teamMemberIds = Array.isArray(values.team) ? [...values.team] : [];
+          // Always include the lead
+          if (values.lead && !teamMemberIds.includes(values.lead)) {
+            teamMemberIds.push(values.lead);
+          }
+          // Remove duplicates
+          teamMemberIds = [...new Set(teamMemberIds)];
+          if (teamMemberIds.length > 0) {
+            const teamPayload = teamMemberIds.map(memberId => ({
+              project_id: newProject.id,
+              member_id: memberId
+            }));
+            const { error: teamInsertError } = await supabase
+              .from('project_team')
+              .insert(teamPayload);
+            if (teamInsertError) {
+              console.error('Error inserting team members:', teamInsertError);
+            }
           }
         }
         
